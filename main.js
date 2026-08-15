@@ -29,6 +29,44 @@ function initSmoothieBody() {
   // the juice is rendered as one smooth body with no particles
 }
 
+// App versioning
+const APP_VERSION = '1.0.0';
+
+async function checkForUpdate() {
+  try {
+    const res = await fetch('/version.json?v=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    const remote = data.version;
+    const badge = document.getElementById('versionBadge');
+    const btn = document.getElementById('updateBtn');
+    if (badge) badge.textContent = 'v' + APP_VERSION;
+    if (remote && remote !== APP_VERSION) {
+      if (btn) {
+        btn.style.display = 'inline-block';
+        btn.setAttribute('aria-hidden', 'false');
+        btn.onclick = () => applyUpdate(remote);
+      }
+    }
+  } catch (e) {
+    // ignore network errors
+  }
+}
+
+function applyUpdate(newVersion) {
+  // attempt a cache-busting reload so the new engine is loaded
+  const btn = document.getElementById('updateBtn');
+  if (btn) btn.textContent = 'Updating...';
+  // best-effort: try to clear caches then reload
+  if (window.caches && navigator.onLine) {
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).finally(() => {
+      window.location.href = window.location.pathname + '?_v=' + Date.now();
+    });
+  } else {
+    window.location.href = window.location.pathname + '?_v=' + Date.now();
+  }
+}
+
 const dragState = {
   active: false,
   element: null,
@@ -623,6 +661,9 @@ window.addEventListener('load', () => {
   createFruitImages();
   initSmoothieBody();
   animate();
+  // check for updates on load and every 60s
+  checkForUpdate();
+  setInterval(checkForUpdate, 60000);
 });
 
 // Simple WebAudio-based blend sound (no external file)
