@@ -292,13 +292,40 @@ function drawBlender() {
   ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.12)`;
   ctx.fillRect(left + 18, waterTop + 10, jarWidth - 36, fillHeight - 18);
 
-  // draw water particle dots
-  waterParticles.forEach((p) => {
-    ctx.fillStyle = p.color;
+  // smooth juice-like liquid body instead of visible particle dots
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(left + 40, top + 8);
+  ctx.bezierCurveTo(left + 20, top + 30, left + 18, top + jarHeight - 24, left + 36, top + jarHeight + 6);
+  ctx.lineTo(left + jarWidth - 36, top + jarHeight + 6);
+  ctx.bezierCurveTo(left + jarWidth - 18, top + jarHeight - 24, left + jarWidth - 20, top + 30, left + jarWidth - 40, top + 8);
+  ctx.closePath();
+  ctx.clip();
+
+  const liquidGradient = ctx.createLinearGradient(left, waterTop, left, top + jarHeight);
+  liquidGradient.addColorStop(0, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.96)`);
+  liquidGradient.addColorStop(0.52, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.88)`);
+  liquidGradient.addColorStop(1, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.72)`);
+  ctx.fillStyle = liquidGradient;
+  ctx.fillRect(left + 18, waterTop + 4, jarWidth - 36, jarHeight - 24);
+
+  for (let i = 0; i < 9; i++) {
+    const x = left + 52 + i * ((jarWidth - 104) / 8);
+    const wave = Math.sin((i * 1.7) + blender.swirlPhase * 2.4) * 12;
+    const blobY = waterTop + 20 + i * 8 + wave;
+    const blobWidth = 24 + (i % 3) * 10;
+    const blobHeight = 12 + (i % 4) * 7;
+    ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${0.14 + (i / 18)})`;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.ellipse(x, blobY, blobWidth, blobHeight, 0, 0, Math.PI * 2);
     ctx.fill();
-  });
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(blender.x - 30, waterTop + 24, 54, 26, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 
   // foam overlay
   const foamToggleEl = document.getElementById('foamToggle');
