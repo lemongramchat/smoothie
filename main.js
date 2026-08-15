@@ -24,24 +24,9 @@ const blender = {
   swirlPhase: 0
 };
 
-// particle-based water and fruit particles
-const waterParticles = [];
-const MAX_WATER_PARTICLES = 220;
-
-function initWaterParticles() {
-  waterParticles.length = 0;
-  const fillRatio = blender.waterLevel;
-  const left = blender.x - blender.width / 2 + 20;
-  const right = blender.x + blender.width / 2 - 20;
-  const top = blender.y - blender.height / 2;
-  const jarHeight = blender.height;
-  const waterTop = top + jarHeight - jarHeight * fillRatio + 10;
-
-  for (let i = 0; i < MAX_WATER_PARTICLES; i++) {
-    const x = lerp(left, right, Math.random());
-    const y = lerp(waterTop + 4, top + jarHeight - 24, Math.random());
-    waterParticles.push({ x, y, vx: (Math.random() - 0.5) * 0.3, vy: Math.random() * 0.3, r: 3 + Math.random() * 2, color: `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.9)`, sticky: 0.92 });
-  }
+// continuous smoothie body and chopped fruit
+function initSmoothieBody() {
+  // the juice is rendered as one smooth body with no particles
 }
 
 const dragState = {
@@ -79,7 +64,7 @@ function resetBlender() {
     el.style.pointerEvents = 'auto';
     el.style.display = 'block';
   });
-  initWaterParticles();
+  initSmoothieBody();
 }
 
 function clamp(value, min, max) {
@@ -241,20 +226,7 @@ function spawnChoppedBits() {
       });
     }
   });
-  // also inject small colored particles into the water to simulate chopped fruit mixing
-  blender.choppedBits.forEach((bit) => {
-    for (let k = 0; k < 4; k++) {
-      waterParticles.push({
-        x: bit.x + (Math.random() - 0.5) * 8,
-        y: bit.y + (Math.random() - 0.5) * 8,
-        vx: (Math.random() - 0.5) * 1.2,
-        vy: (Math.random() - 0.5) * 1.2,
-        r: 2 + Math.random() * 2,
-        color: bit.color.replace('0.9', '0.98'),
-        sticky: 0.85
-      });
-    }
-  });
+  // the smoothie stays smooth and continuous; no particle spray is used
 }
 
 function drawBlender() {
@@ -501,94 +473,6 @@ function loadRecipeFile(file) {
 }
 
 function update() {
-  // update water particle physics
-  const left = blender.x - blender.width / 2 + 18;
-  const right = blender.x + blender.width / 2 - 18;
-  const top = blender.y - blender.height / 2 + 8;
-  const bottom = blender.y + blender.height / 2 + 6;
-  // SPH-like density & forces (naive O(n^2), fine for small particle counts)
-  const h = 22; // interaction radius
-  const restDensity = 12.0;
-  const stiffness = 1.7;
-  const viscosity = 0.2;
-  const dt = 0.016 * (document.getElementById('slowMotion')?.checked ? 0.5 : 1.0);
-
-  const densities = new Array(waterParticles.length).fill(0);
-  for (let i = 0; i < waterParticles.length; i++) {
-    const pi = waterParticles[i];
-    let dens = 0;
-    for (let j = 0; j < waterParticles.length; j++) {
-      const pj = waterParticles[j];
-      const dx = pi.x - pj.x;
-      const dy = pi.y - pj.y;
-      const r = Math.hypot(dx, dy);
-      if (r < h) dens += (h - r);
-    }
-    densities[i] = dens;
-  }
-
-  const pressures = densities.map(d => stiffness * Math.max(0, d - restDensity));
-
-  for (let i = 0; i < waterParticles.length; i++) {
-    const p = waterParticles[i];
-    let fx = 0;
-    let fy = 0;
-
-    for (let j = 0; j < waterParticles.length; j++) {
-      if (i === j) continue;
-      const q = waterParticles[j];
-      const dx = p.x - q.x;
-      const dy = p.y - q.y;
-      const r = Math.hypot(dx, dy) || 0.001;
-      if (r < h) {
-        const diff = (h - r);
-        // pressure force (simple)
-        const press = - (pressures[i] + pressures[j]) * 0.5;
-        fx += (press * (dx / r)) * (diff * 0.002);
-        fy += (press * (dy / r)) * (diff * 0.002);
-        // viscosity-like velocity blending
-        fx += viscosity * (q.vx - p.vx) * (diff * 0.02);
-        fy += viscosity * (q.vy - p.vy) * (diff * 0.02);
-      }
-    }
-
-    // gravity
-    const gravity = 0.12;
-    fy += gravity * (blender.isBlending ? 0.36 : 1.0);
-
-    // integrate
-    p.vx += fx * dt;
-    p.vy += fy * dt;
-    // damping
-    p.vx *= blender.isBlending ? 0.986 : 0.995;
-    p.vy *= blender.isBlending ? 0.986 : 0.995;
-
-    p.x += p.vx * (1.0);
-    p.y += p.vy * (1.0);
-
-    // boundary - keep particles inside jar rectangle approximation
-    if (p.x < left + p.r) {
-      p.x = left + p.r;
-      p.vx *= -0.3;
-    }
-    if (p.x > right - p.r) {
-      p.x = right - p.r;
-      p.vx *= -0.3;
-    }
-    if (p.y < top + p.r) {
-      p.y = top + p.r;
-      p.vy *= -0.3;
-    }
-    if (p.y > bottom - p.r) {
-      p.y = bottom - p.r;
-      p.vy *= -0.4;
-      p.vx *= 0.9;
-    }
-
-    // blade collision
-    handleBladeCollision(p);
-  }
-
   if (blender.isBlending) {
     blender.blendProgress += 0.016;
     blender.swirlPhase += 0.12;
@@ -624,9 +508,18 @@ function update() {
       blender.isBlending = false;
       blender.blendProgress = 0;
       blender.swirlPhase = 0;
-      // stop sound
       stopBlendSound();
     }
+  } else if (blender.choppedBits.length > 0) {
+    const centerX = blender.x;
+    const centerY = blender.y + 25;
+    blender.choppedBits.forEach((bit) => {
+      bit.x += Math.sin(blender.swirlPhase + bit.angle) * 0.18;
+      bit.y += Math.cos(blender.swirlPhase + bit.angle) * 0.12;
+      bit.angle += bit.spin * 0.25;
+      bit.x = clamp(bit.x, centerX - 105, centerX + 105);
+      bit.y = clamp(bit.y, centerY - 100, centerY + 90);
+    });
   }
 }
 
@@ -757,13 +650,6 @@ function bindButtons() {
     blender.blendDuration = Number(blendTimeInput.value);
     blender.swirlPhase = 0;
     blender.choppedBits = [];
-    // thicken the smoothie: increase particle density and reduce mobility
-    for (let p of waterParticles) {
-      p.sticky = 0.92;
-      p.r = Math.max(2, p.r - 0.6);
-    }
-    // spawn extra colored particles slowly when blending
-    // start blend sound
     playBlendSound();
   });
 
@@ -790,7 +676,7 @@ window.addEventListener('load', () => {
   attachFruitDragHandlers();
   bindButtons();
   createFruitImages();
-  initWaterParticles();
+  initSmoothieBody();
   animate();
 });
 
