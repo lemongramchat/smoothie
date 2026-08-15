@@ -19,161 +19,190 @@ const UI = {};
 
 function spawn(n){
   const cap = Math.max(100, Number(UI.maxParticles?.value || 800));
-  for(let i=0;i<n && particles.length < cap;i++){
-    particles.push({
-      x: emitter.x + (Math.random()-0.5)*60,
-      y: emitter.y + (Math.random()-0.5)*6,
-      vx: (Math.random()-0.5)*1.2,
-      vy: Math.random()*1,
-      r: 2 + Math.random()*2,
-      life: 1
+  // Simplified smoothie blender simulation
+  const fruitsCatalog = {
+    banana: { name: 'Banana', color: [255,230,128] },
+    strawberry: { name: 'Strawberry', color: [255,107,137] },
+    blueberry: { name: 'Blueberry', color: [91,124,255] },
+    spinach: { name: 'Spinach', color: [95,184,95] },
+    mango: { name: 'Mango', color: [255,184,77] }
+  };
+
+  const blender = {
+    x: canvas.width/2,
+    y: canvas.height*0.58,
+    width: 260,
+    height: 260,
+    waterLevel: 0.25, // fraction
+    waterColor: [180,220,255],
+    contents: [] // list of fruit keys
+  };
+
+  let blending = false;
+  let blendProgress = 0;
+  let blendDuration = 2.0; // seconds
+
+  function reset(){
+    blender.contents.length = 0;
+    blender.waterColor = [180,220,255];
+    blending = false; blendProgress = 0;
+  }
+
+  reset();
+
+  // Drag handling for fruit DOM elements
+  let dragState = null;
+  function makeFruitsDraggable(){
+    const fruitEls = document.querySelectorAll('.fruit');
+    fruitEls.forEach(el=>{
+      el.addEventListener('pointerdown', (ev)=>{
+        ev.preventDefault();
+        el.setPointerCapture(ev.pointerId);
+        el.classList.add('dragging');
+        dragState = { el, id: ev.pointerId, startX: ev.clientX, startY: ev.clientY };
+        el.style.position = 'fixed';
+        el.style.zIndex = 9999;
+        moveDraggedElement(ev.clientX, ev.clientY);
+      });
+      el.addEventListener('pointermove', (ev)=>{ if(dragState && dragState.el===el) moveDraggedElement(ev.clientX, ev.clientY) });
+      el.addEventListener('pointerup', (ev)=>{ if(dragState && dragState.el===el) finishDrag(ev.clientX, ev.clientY); });
+      el.addEventListener('lostpointercapture', ()=>{ if(dragState && dragState.el===el) finishDrag(); });
     });
   }
-}
 
-// Grinder definition
-const grinder = {
-  x: canvas.width/2,
-  y: canvas.height/2,
-  innerR: 40,
-  outerR: 140,
-  bladeCount: 5,
-  angle: 0,
-  speed: 0.03,
-  thickness: 18
-};
+  function moveDraggedElement(cx, cy){
+    if(!dragState) return;
+    const el = dragState.el;
+    el.style.left = (cx - el.offsetWidth/2) + 'px';
+    el.style.top = (cy - el.offsetHeight/2) + 'px';
+  }
 
-function reset(){
-  particles.length = 0;
-  grinder.x = canvas.width/2;
-  grinder.y = canvas.height/2;
-  grinder.angle = 0;
-}
+  function finishDrag(cx, cy){
+    if(!dragState) return;
+    const el = dragState.el;
+    el.classList.remove('dragging');
+    el.style.position = '';
+    el.style.left = '';
+    el.style.top = '';
+    el.style.zIndex = '';
 
-reset();
-
-// utility: distance from point to segment
-function pointToSegmentDistance(px,py, x1,y1,x2,y2){
-  const vx = x2-x1, vy = y2-y1;
-  const wx = px-x1, wy = py-y1;
-  const c = (wx*vx + wy*vy) / (vx*vx + vy*vy);
-  const t = Math.max(0, Math.min(1, c));
-  const dx = x1 + vx*t - px;
-  const dy = y1 + vy*t - py;
-  return Math.sqrt(dx*dx + dy*dy);
-}
-
-function update(){
-  if(emitter.on) spawn(emitter.rate);
-
-  grinder.angle += grinder.speed;
-
-  for(let i=particles.length-1;i>=0;i--){
-    const p = particles[i];
-    p.vy += GRAVITY * 0.6;
-    p.x += p.vx;
-    p.y += p.vy;
-
-    // walls
-    if(p.x < 10){ p.x = 10; p.vx *= -0.3 }
-    if(p.x > canvas.width-10){ p.x = canvas.width-10; p.vx *= -0.3 }
-    if(p.y > canvas.height-10){ p.y = canvas.height-10; p.vy *= -0.35; p.vx *= 0.98 }
-
-    // grinder collision: check against each blade segment
-    for(let b=0;b<grinder.bladeCount;b++){
-      const a = grinder.angle + (b * Math.PI*2 / grinder.bladeCount);
-      const x1 = grinder.x + Math.cos(a) * grinder.innerR;
-      const y1 = grinder.y + Math.sin(a) * grinder.innerR;
-      const x2 = grinder.x + Math.cos(a) * grinder.outerR;
-      const y2 = grinder.y + Math.sin(a) * grinder.outerR;
-      const dist = pointToSegmentDistance(p.x,p.y, x1,y1,x2,y2);
-      if(dist < grinder.thickness/2 + p.r){
-        // simple response: kick particle outwards and reduce life
-        const dx = p.x - grinder.x, dy = p.y - grinder.y;
-        const mag = Math.sqrt(dx*dx + dy*dy) || 1;
-        p.vx = (dx/mag) * (2 + Math.random()*2) + grinder.speed*20;
-        p.vy = (dy/mag) * (2 + Math.random()*2) - Math.random()*2;
-        p.life -= 0.25;
+    // If dropped over blender area, add to contents (and remove element)
+    if(typeof cx === 'number' && typeof cy === 'number'){
+      const rect = canvas.getBoundingClientRect();
+      const x = cx - rect.left;
+      const y = cy - rect.top;
+      if(pointInBlender(x,y)){
+        const key = el.dataset.fruit;
+        blender.contents.push(key);
+        // mark removed visually
+        el.style.opacity = 0.4; el.style.pointerEvents = 'none';
       }
     }
 
-    if(p.life <= 0) particles.splice(i,1);
-  }
-}
-
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // draw container (simple)
-  ctx.fillStyle = '#111';
-  ctx.fillRect(20,80, canvas.width-40, canvas.height-120);
-
-  // draw water particles
-  ctx.globalCompositeOperation = 'source-over';
-  for(const p of particles){
-    const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3);
-    grad.addColorStop(0,'rgba(120,180,255,0.9)');
-    grad.addColorStop(1,'rgba(60,110,180,0.3)');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-    ctx.fill();
+    dragState = null;
   }
 
-  // draw grinder
-  ctx.save();
-  ctx.translate(grinder.x, grinder.y);
-  ctx.rotate(grinder.angle);
+  function pointInBlender(px,py){
+    const left = blender.x - blender.width/2;
+    const top = blender.y - blender.height/2;
+    return px >= left && px <= left + blender.width && py >= top && py <= top + blender.height;
+  }
 
-  // inner hub
-  ctx.fillStyle = '#666';
-  ctx.beginPath();
-  ctx.arc(0,0, grinder.innerR-6, 0, Math.PI*2);
-  ctx.fill();
+  function lerp(a,b,t){ return a + (b-a)*t }
 
-  // blades
-  for(let b=0;b<grinder.bladeCount;b++){
-    const ang = b * Math.PI*2 / grinder.bladeCount;
+  function mixColors(list){
+    if(list.length===0) return blender.waterColor;
+    // start with base water color weighted as 1
+    let r=blender.waterColor[0], g=blender.waterColor[1], b=blender.waterColor[2];
+    let weight = 1;
+    for(const k of list){ const c = fruitsCatalog[k].color; r += c[0]; g += c[1]; b += c[2]; weight += 1 }
+    return [Math.round(r/weight), Math.round(g/weight), Math.round(b/weight)];
+  }
+
+  function update(dt){
+    if(blending){
+      blendProgress += dt;
+      const t = Math.min(1, blendProgress / blendDuration);
+      const target = mixColors(blender.contents);
+      blender.waterColor = [ Math.round(lerp(blender.waterColor[0], target[0], t)), Math.round(lerp(blender.waterColor[1], target[1], t)), Math.round(lerp(blender.waterColor[2], target[2], t)) ];
+      if(t>=1){ blending = false; /* keep contents but mark blended */ }
+    }
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // draw counter background/container
+    const left = blender.x - blender.width/2;
+    const top = blender.y - blender.height/2;
+    ctx.fillStyle = '#222';
+    ctx.fillRect(left-6, top-6, blender.width+12, blender.height+12);
+
+    // glass
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(left, top, blender.width, blender.height);
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 2; ctx.strokeRect(left, top, blender.width, blender.height);
+
+    // water / smoothie inside
+    const waterH = blender.height * blender.waterLevel;
+    const waterTop = top + blender.height - waterH;
+    const c = blender.waterColor;
+    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.95)`;
+    ctx.fillRect(left+4, waterTop+4, blender.width-8, waterH-8);
+
+    // draw blender lid / blades indicator
     ctx.save();
-    ctx.rotate(ang);
-    ctx.fillStyle = '#888';
-    ctx.beginPath();
-    ctx.rect(grinder.innerR, -grinder.thickness/2, grinder.outerR-grinder.innerR, grinder.thickness);
-    ctx.fill();
+    ctx.translate(blender.x, top+12);
+    if(blending) ctx.rotate((performance.now()/1000) * 10);
+    ctx.fillStyle = '#444';
+    ctx.fillRect(-40, -8, 80, 12);
     ctx.restore();
+
+    // draw list of added fruits inside (small icons)
+    ctx.fillStyle = '#fff'; ctx.font='13px Arial';
+    for(let i=0;i<blender.contents.length;i++){
+      const key = blender.contents[i];
+      const fx = left + 12 + (i%4)*56;
+      const fy = top + 8 + Math.floor(i/4)*28;
+      const col = fruitsCatalog[key].color;
+      ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+      ctx.fillRect(fx, fy, 48, 20);
+      ctx.fillStyle = '#111'; ctx.fillText(fruitsCatalog[key].name, fx+6, fy+14);
+    }
+
+    // instructions overlay
+    ctx.fillStyle = '#fff'; ctx.font='14px Arial';
+    ctx.fillText('Drag fruits here', left+12, top + blender.height + 22);
   }
 
-  ctx.restore();
-
-  // overlay text
-  ctx.fillStyle = '#fff';
-  ctx.font = '14px Arial';
-  ctx.fillText('Particles: ' + particles.length, 12, canvas.height - 12);
-}
-
-let running = true;
-function loop(){
-  if(running) update();
-  draw();
+  let lastTime = performance.now();
+  function loop(){
+    const now = performance.now();
+    const dt = (now - lastTime)/1000;
+    lastTime = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
   requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
 
-// controls
-window.addEventListener('keydown', (e)=>{
-  if(e.code === 'Space'){ emitter.on = !emitter.on; updateToggleButton() }
-  if(e.code === 'ArrowLeft'){ grinder.speed = Math.max(-0.5, grinder.speed - 0.01); syncSpeedControl() }
-  if(e.code === 'ArrowRight'){ grinder.speed = Math.min(0.8, grinder.speed + 0.01); syncSpeedControl() }
-  if(e.key.toLowerCase() === 'r'){ reset() }
-});
+  // bind UI
+  function bindUI(){
+    const blendBtn = document.getElementById('blendBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const blendTimeEl = document.getElementById('blendTime');
+    const maxFruitsEl = document.getElementById('maxFruits');
 
-// UI helper functions
-function updateToggleButton(){
-  if(UI.toggleEmitter) UI.toggleEmitter.textContent = emitter.on ? 'Pause Emitter' : 'Resume Emitter';
-}
-function syncSpeedControl(){ if(UI.grinderSpeed) UI.grinderSpeed.value = grinder.speed }
+    blendBtn.addEventListener('click', ()=>{
+      if(blender.contents.length===0) return;
+      blending = true; blendProgress = 0; blendDuration = Number(blendTimeEl.value);
+    });
+    resetBtn.addEventListener('click', ()=>{ reset(); // restore fruit panel
+      document.querySelectorAll('.fruit').forEach(el=>{ el.style.opacity=''; el.style.pointerEvents=''; });
+    });
+  }
 
-function bindUI(){
+  window.addEventListener('load', ()=>{ bindUI(); makeFruitsDraggable(); });
   UI.toggleEmitter = document.getElementById('toggleEmitter');
   UI.resetBtn = document.getElementById('resetBtn');
   UI.emitterRate = document.getElementById('emitterRate');
