@@ -1,82 +1,87 @@
-# Grinder With Water — Specification
+# Smoothie Blender Game — Specification
 
 Overview
-- A small HTML5 web game where a rotating grinder interacts with water inside a container.
-- Target: playable prototype for browser (desktop-first), published on GitHub Pages.
+- A small HTML5 web game where the player drags fruit into a blender, presses Blend, and watches the fruit turn into a colorful smoothie.
+- Target: browser-based interactive prototype, published on GitHub Pages as a static site.
 
 Goals
-- Demonstrate believable water behavior using a particle-based approximation (Canvas2D).
-- Provide interactive grinder mechanics (rotation, collisions) that affect water droplets.
-- Simple, responsive UI and basic performance controls so it runs smoothly across machines.
+- Present a realistic blender silhouette with a glass jar and bottom blade.
+- Keep the fruit icons visible until the player presses Blend.
+- Show chopped fruit pieces as colorful fragments swirling inside the smoothie after blending begins.
+- Keep the interactions simple, responsive, and easy to iterate in a static HTML/CSS/JS project.
 
 Core Features
-- Water particle system: spawn, gravity, basic viscosity-like damping, pooling at container bottom.
-- Grinder: central hub + multiple blades; blades rotate and deflect droplets on collision.
-- Controls: start/stop emitter, adjust emitter rate, grinder rotation speed, reset scene, drag grinder.
-- UI: HUD showing particle count and simple control panel (sliders/buttons).
-- Deployment: one-folder static site served via GitHub Pages.
+- Fruit tray with draggable fruit icons.
+- Blender jar drawn on HTML5 Canvas with water and smoothie color.
+- Fruit drag-and-drop interaction into the blender body.
+- Blend button that triggers a chop and swirl animation.
+- Reset button that clears the blender and returns the fruit tray to its initial state.
+- Deployment as a static site on GitHub Pages.
 
 Functional Requirements
-- FR1: The emitter spawns particles at adjustable rate (0–~4000 cap).
-- FR2: Particles respond to gravity, collide with container bounds and grinder, and eventually remove when life expires.
-- FR3: Grinder rotation is user-adjustable (including reversing direction) and continuous when active.
-- FR4: Player can drag the grinder to reposition it inside the container.
-- FR5: Game must run at interactive frame rates (>30 FPS) on typical laptop browsers by default.
+- FR1: The user can drag fruit icons from the side panel into the blender.
+- FR2: Fruit remains visible in its original form until Blend is pressed.
+- FR3: Once blending starts, fruit pieces are transformed into chopped bits that move inside the smoothie.
+- FR4: The smoothie color changes based on the fruit colors added to the blender.
+- FR5: The blender is visually shaped like a blender with a tall jar and a bottom blade.
+- FR6: Reset clears the fruit and returns the blender to its empty state.
+- FR7: The app runs smoothly in modern browsers without a backend runtime.
 
 Non-Functional Requirements
-- NFR1: Use only client-side tech: HTML, CSS, JavaScript (no server runtime required for gameplay).
-- NFR2: Graceful degradation on low-end devices — provide particle caps and lower default particle counts.
-- NFR3: Code should be modular and well-documented; easy to extend with better fluid sims later.
+- NFR1: Use only client-side technologies: HTML, CSS, and JavaScript.
+- NFR2: Keep the implementation lightweight and static so it works on GitHub Pages without build tooling.
+- NFR3: Code should remain easy to edit and extend for additional fruit types, animation polish, or sound effects.
 
 Gameplay Mechanics
-- Emitter spawns droplets with random offset and initial velocity.
-- Particles have simple life value and reduce on strong collisions with grinder blades.
-- On blade collision, particles gain outward velocity (deflection) and may be removed after multiple hits.
-- Particles accumulate at bottom and can be dispersed by active grinder motion.
+- Fruit is represented by simple icon tiles with distinct colors.
+- Dragging a fruit into the blender container adds that fruit to the blender state.
+- Blend begins only when the player presses the Blend button and at least one fruit has been added.
+- Chopped fruit pieces rotate and swirl through the liquid during the blend cycle.
+- After the blend cycle completes, the pieces remain in the smoothie while the jar stays ready for another reset.
 
 UI / Controls
-- Buttons: Toggle Emitter, Reset.
-- Sliders: Emitter Rate, Grinder Speed, Max Particles.
-- Keyboard: Space (toggle emitter), Left/Right arrows (modify speed), R (reset).
-- Mouse: Click+drag to move grinder hub.
+- Fruit tray on the side of the screen.
+- Blend button for starting the blend.
+- Reset button for clearing the blender.
+- Optional blending time input or timing control for polish.
+- Mouse drag with pointer events for fruit placement.
 
 Assets
-- No external binary assets required for prototype — grinder and particles are drawn with Canvas primitives.
-- Optional: small UI icons and sound effects (ogg/mp3) for collisions and UI clicks for later polish.
+- Fruit icons are generated as simple canvas/drawing primitives and color-coded UI tiles.
+- No external binary assets are required for the core gameplay.
 
 Tech Design
-- Rendering: HTML5 Canvas 2D. Draw particles as filled circles or radial gradients for nicer visuals.
-- Simulation loop: fixed timestep update + render per animation frame. Limit total particles for performance.
-- Collision: approximate blade geometry as line segments (innerR→outerR) and test point-to-segment distance.
-- Optimization: spatial hashing/grid if particle count grows large; particle pooling to avoid GC churn.
+- Rendering: HTML5 Canvas 2D for the blender and smoothie.
+- Interaction: pointer events for drag-and-drop fruit placement.
+- Animation: chopped fruit bits are stored separately from the original fruit list and rendered once blending starts.
+- Styling: CSS for the page layout, side tray, controls, and blender presentation.
 
 Project Structure
-- `index.html` — entry and UI layout.
-- `style.css` — styles for UI and canvas.
-- `main.js` — core simulation and UI bindings.
-- `README.md` — instructions and deployment notes.
-- `deploy.sh` — helper for GitHub Pages deployment.
+- `index.html` — UI shell and fruit tray.
+- `style.css` — page and blender styling.
+- `main.js` — canvas drawing, state, blending logic, and drag/drop handling.
+- `README.md` — local run and GitHub Pages notes.
+- `deploy.sh` — optional deployment helper.
 - `SPECIFICATION.md` — this file.
 
 Deployment (GitHub Pages)
-- Option A — User site: push to `username.github.io` repository `main` branch.
-- Option B — Project site: push site files to `gh-pages` branch; enable Pages from that branch.
-- Use `deploy.sh` helper or follow manual steps in `README.md`.
+- Static site is served from the GitHub Pages branch.
+- Project site URL: https://lemongramchat.github.io/smoothie/
 
 Testing & Validation
-- Manual tests: verify start/stop emitter, slider changes reflect immediately, drag works, grinder affects particles.
-- Performance tests: confirm 30+ FPS at default particle settings; test high particle cap with device fallback.
+- Manual verification: drag fruit into blender, blend, confirm chopped fruit appears, reset to empty state.
+- Visual check: blender shape, blade placement, and smoothie color match the intended design.
+- Browser check: confirm the page works from a static server or GitHub Pages without build steps.
 
 Future Enhancements
-- Replace particle approximation with SPH or WebGL-based GPGPU fluid for more realistic water.
-- Add splash particles and sounds on strong collisions.
-- Save/Load presets and shareable links for configurations.
-- Mobile touchscreen support and responsive layout improvements.
+- Add richer swirl physics and audio.
+- Add more fruit types and layered smoothie recipes.
+- Add a score, timer, or recipe challenge mode.
+- Improve responsive mobile layout and touch handling.
 
 Acceptance Criteria
-- AC1: Game runs from `index.html` in modern Chrome/Firefox/Edge and the main controls function.
-- AC2: Grinder collides with and deflects particles visibly.
-- AC3: Repo includes `deploy.sh` and README with GitHub Pages instructions.
-
-Contact / Notes
-- Files are in this folder; to iterate, update `main.js` and test locally via `python3 -m http.server 8000`.
+- AC1: The player can drag fruit from the tray into the blender.
+- AC2: Fruit stays as fruit until Blend is pressed.
+- AC3: The blender has a realistic bottle-like body and bottom blade.
+- AC4: Blending creates chopped fruit fragments that swirl in the smoothie.
+- AC5: The app can be served as a static site on GitHub Pages.
