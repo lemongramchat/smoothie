@@ -231,13 +231,13 @@ function spawnChoppedBits() {
       blender.choppedBits.push({
         x: cx + Math.cos(angle) * radius,
         y: cy + Math.sin(angle) * radius,
-        w: 8 + Math.random() * 10,
-        h: 5 + Math.random() * 8,
-        color: `rgba(${color.r}, ${color.g}, ${color.b}, 0.9)`,
+        w: 10 + Math.random() * 12,
+        h: 7 + Math.random() * 10,
+        color: `rgba(${color.r}, ${color.g}, ${color.b}, 0.95)`,
         angle: Math.random() * Math.PI * 2,
-        spin: (Math.random() - 0.5) * 0.3,
-        driftX: (Math.random() - 0.5) * 0.8,
-        driftY: (Math.random() - 0.5) * 0.8
+        spin: (Math.random() - 0.5) * 0.45,
+        driftX: (Math.random() - 0.5) * 0.9,
+        driftY: (Math.random() - 0.5) * 0.9
       });
     }
   });
@@ -302,35 +302,39 @@ function drawBlender() {
   ctx.closePath();
   ctx.clip();
 
-  const juiceOpacity = blender.isBlending ? 0.98 : 0.9;
+  const juiceOpacity = blender.isBlending ? 0.99 : 0.92;
   const juiceGradient = ctx.createLinearGradient(left, waterTop, left, top + jarHeight);
   juiceGradient.addColorStop(0, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${juiceOpacity})`);
-  juiceGradient.addColorStop(0.35, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${Math.max(0.76, juiceOpacity - 0.08)})`);
-  juiceGradient.addColorStop(0.8, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${Math.max(0.68, juiceOpacity - 0.2)})`);
-  juiceGradient.addColorStop(1, `rgba(${blender.waterColor[0] - 18}, ${blender.waterColor[1] - 12}, ${blender.waterColor[2] - 10}, 0.75)`);
+  juiceGradient.addColorStop(0.36, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${Math.max(0.8, juiceOpacity - 0.06)})`);
+  juiceGradient.addColorStop(0.7, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${Math.max(0.72, juiceOpacity - 0.16)})`);
+  juiceGradient.addColorStop(1, `rgba(${Math.max(10, blender.waterColor[0] - 24)}, ${Math.max(12, blender.waterColor[1] - 18)}, ${Math.max(15, blender.waterColor[2] - 16)}, 0.82)`);
   ctx.fillStyle = juiceGradient;
   ctx.fillRect(left + 18, waterTop + 4, jarWidth - 36, jarHeight - 24);
 
-  const thicknessBoost = blender.isBlending ? 1.4 : 1.0;
-  for (let i = 0; i < 12; i++) {
-    const x = left + 52 + i * ((jarWidth - 104) / 11);
-    const wave = Math.sin((i * 1.9) + blender.swirlPhase * 2.6) * (12 * thicknessBoost);
-    const blobY = waterTop + 18 + i * 9 + wave;
+  const thicknessBoost = blender.isBlending ? 1.6 : 1.2;
+  for (let i = 0; i < 14; i++) {
+    const x = left + 54 + i * ((jarWidth - 108) / 13);
+    const wave = Math.sin((i * 2.1) + blender.swirlPhase * 3.1) * (14 * thicknessBoost);
+    const blobY = waterTop + 20 + i * 8 + wave;
     const blobWidth = 22 + (i % 3) * 12;
-    const blobHeight = 16 + (i % 4) * 9;
-    ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${0.12 + (i / 20)})`;
+    const blobHeight = 18 + (i % 4) * 10;
+    ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${0.16 + (i / 26)})`;
     ctx.beginPath();
     ctx.ellipse(x, blobY, blobWidth, blobHeight, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
   ctx.beginPath();
-  ctx.ellipse(blender.x - 26, waterTop + 34, 58, 26, -0.45, 0, Math.PI * 2);
+  ctx.ellipse(blender.x - 30, waterTop + 30, 58, 24, -0.46, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
   ctx.beginPath();
-  ctx.ellipse(blender.x + 26, waterTop + 52, 44, 18, 0.2, 0, Math.PI * 2);
+  ctx.ellipse(blender.x + 22, waterTop + 54, 48, 18, 0.28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(20,20,20,0.08)';
+  ctx.beginPath();
+  ctx.ellipse(blender.x, waterTop + 90, 68, 16, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
