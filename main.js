@@ -302,28 +302,35 @@ function drawBlender() {
   ctx.closePath();
   ctx.clip();
 
-  const liquidGradient = ctx.createLinearGradient(left, waterTop, left, top + jarHeight);
-  liquidGradient.addColorStop(0, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.96)`);
-  liquidGradient.addColorStop(0.52, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.88)`);
-  liquidGradient.addColorStop(1, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.72)`);
-  ctx.fillStyle = liquidGradient;
+  const juiceOpacity = blender.isBlending ? 0.98 : 0.9;
+  const juiceGradient = ctx.createLinearGradient(left, waterTop, left, top + jarHeight);
+  juiceGradient.addColorStop(0, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${juiceOpacity})`);
+  juiceGradient.addColorStop(0.35, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${Math.max(0.76, juiceOpacity - 0.08)})`);
+  juiceGradient.addColorStop(0.8, `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${Math.max(0.68, juiceOpacity - 0.2)})`);
+  juiceGradient.addColorStop(1, `rgba(${blender.waterColor[0] - 18}, ${blender.waterColor[1] - 12}, ${blender.waterColor[2] - 10}, 0.75)`);
+  ctx.fillStyle = juiceGradient;
   ctx.fillRect(left + 18, waterTop + 4, jarWidth - 36, jarHeight - 24);
 
-  for (let i = 0; i < 9; i++) {
-    const x = left + 52 + i * ((jarWidth - 104) / 8);
-    const wave = Math.sin((i * 1.7) + blender.swirlPhase * 2.4) * 12;
-    const blobY = waterTop + 20 + i * 8 + wave;
-    const blobWidth = 24 + (i % 3) * 10;
-    const blobHeight = 12 + (i % 4) * 7;
-    ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${0.14 + (i / 18)})`;
+  const thicknessBoost = blender.isBlending ? 1.4 : 1.0;
+  for (let i = 0; i < 12; i++) {
+    const x = left + 52 + i * ((jarWidth - 104) / 11);
+    const wave = Math.sin((i * 1.9) + blender.swirlPhase * 2.6) * (12 * thicknessBoost);
+    const blobY = waterTop + 18 + i * 9 + wave;
+    const blobWidth = 22 + (i % 3) * 12;
+    const blobHeight = 16 + (i % 4) * 9;
+    ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${0.12 + (i / 20)})`;
     ctx.beginPath();
     ctx.ellipse(x, blobY, blobWidth, blobHeight, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
   ctx.beginPath();
-  ctx.ellipse(blender.x - 30, waterTop + 24, 54, 26, -0.4, 0, Math.PI * 2);
+  ctx.ellipse(blender.x - 26, waterTop + 34, 58, 26, -0.45, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.beginPath();
+  ctx.ellipse(blender.x + 26, waterTop + 52, 44, 18, 0.2, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
@@ -497,9 +504,9 @@ function update() {
   const bottom = blender.y + blender.height / 2 + 6;
   // SPH-like density & forces (naive O(n^2), fine for small particle counts)
   const h = 22; // interaction radius
-  const restDensity = 8.0;
-  const stiffness = 1.2;
-  const viscosity = 0.12;
+  const restDensity = 12.0;
+  const stiffness = 1.7;
+  const viscosity = 0.2;
   const dt = 0.016 * (document.getElementById('slowMotion')?.checked ? 0.5 : 1.0);
 
   const densities = new Array(waterParticles.length).fill(0);
@@ -543,14 +550,14 @@ function update() {
 
     // gravity
     const gravity = 0.12;
-    fy += gravity * (blender.isBlending ? 0.5 : 1.0);
+    fy += gravity * (blender.isBlending ? 0.36 : 1.0);
 
     // integrate
     p.vx += fx * dt;
     p.vy += fy * dt;
     // damping
-    p.vx *= blender.isBlending ? 0.995 : 0.998;
-    p.vy *= blender.isBlending ? 0.995 : 0.998;
+    p.vx *= blender.isBlending ? 0.986 : 0.995;
+    p.vy *= blender.isBlending ? 0.986 : 0.995;
 
     p.x += p.vx * (1.0);
     p.y += p.vy * (1.0);
