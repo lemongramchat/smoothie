@@ -1,9 +1,109 @@
 * { box-sizing: border-box; }
-html,body { height:100%; margin:0; font-family: Arial, Helvetica, sans-serif; background:#222; color:#eee }
-#ui { position:fixed; left:12px; top:12px; z-index:10; background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:6px }
-canvas { display:block; width:100vw; height:100vh }
-#controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
-#controls label{ color:#ddd; font-size:13px }
-#controls input[type=range]{ vertical-align:middle }
-#controls button{ background:#2b2b2b; color:#fff; border:1px solid #444; padding:6px 8px; border-radius:4px }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(#ddf3ff, #93c9ff 60%, #d6e6ff);
+  color: #fff;
+}
+
+#ui {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 20;
+  background: rgba(15, 18, 35, 0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+}
+
+#ui h1 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+}
+
+#ui p {
+  margin: 8px 0 0 0;
+  font-size: 0.9rem;
+  color: #eef7ff;
+}
+
+#controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#controls label {
+  color: #eaf8ff;
+  font-size: 0.8rem;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: white;
+  background: linear-gradient(#ff7a7a, #e94c4c);
+}
+
+button#resetBtn {
+  background: linear-gradient(#5f7dd9, #4669cb);
+}
+
+input[type="range"] {
+  accent-color: #ff7d4d;
+}
+
+#fruit-panel {
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  z-index: 20;
+  width: 150px;
+  padding: 12px;
+  background: rgba(20, 25, 40, 0.65);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+}
+
+#fruit-panel h3 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.fruit {
+  width: 100%;
+  margin: 6px 0;
+  border-radius: 12px;
+  cursor: grab;
+  text-align: center;
+  padding: 9px 8px;
+  font-weight: 700;
+  color: #111;
+  user-select: none;
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,0.15);
+}
+
+.fruit:active,
+.fruit.dragging {
+  cursor: grabbing;
+  opacity: 0.7;
+}
+
+#game {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  touch-action: none;
+}
+
 
