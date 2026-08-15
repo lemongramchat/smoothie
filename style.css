@@ -63,6 +63,41 @@ html, body {
   font-size: 0.8rem;
 }
 
+#ingredients {
+  margin-top: 8px;
+  background: rgba(255,255,255,0.03);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+#ingredientList {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.ingredient-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.06);
+  color: #0c2136;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.ingredient-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+}
+
 button {
   border: none;
   border-radius: 10px;

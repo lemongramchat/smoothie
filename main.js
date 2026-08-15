@@ -103,6 +103,7 @@ function resetBlender() {
     el.style.display = 'block';
   });
   initSmoothieBody();
+  updateIngredientUI();
 }
 
 function clamp(value, min, max) {
@@ -227,6 +228,8 @@ function addFruitToBlender(fruitName) {
   const maxFruits = Number(document.getElementById('maxFruits').value || 5);
   if (blender.fruits.length >= maxFruits) return;
   blender.fruits.push(fruitName);
+  // update the small Ingredients compartment
+  updateIngredientUI();
 }
 
 function drawBackground() {
@@ -433,11 +436,32 @@ function loadRecipeFile(file) {
       if (data.blendTime) blender.blendDuration = Number(data.blendTime);
       if (data.waterColor) blender.waterColor = data.waterColor;
       if (typeof data.waterLevel === 'number') blender.waterLevel = data.waterLevel;
+      updateIngredientUI();
     } catch (e) {
       console.error('Failed to load recipe', e);
     }
   };
   reader.readAsText(file);
+}
+
+function updateIngredientUI() {
+  const container = document.getElementById('ingredientList');
+  if (!container) return;
+  container.innerHTML = '';
+  blender.fruits.forEach((name) => {
+    const item = document.createElement('div');
+    item.className = 'ingredient-item';
+    const sw = document.createElement('span');
+    sw.className = 'ingredient-swatch';
+    const saved = localStorage.getItem(`fruit-img-${name}`);
+    if (saved) sw.style.backgroundImage = `url(${saved})`;
+    else sw.style.background = (fruitCatalog[name] && fruitCatalog[name].color) || '#ddd';
+    const txt = document.createElement('span');
+    txt.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    item.appendChild(sw);
+    item.appendChild(txt);
+    container.appendChild(item);
+  });
 }
 
 function update() {
