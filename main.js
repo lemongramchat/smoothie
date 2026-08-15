@@ -353,8 +353,8 @@ function drawBlender() {
     }
   }
 
-  // fruit icons stay visible until the Blend button is pressed
-  if (!blender.isBlending) {
+  // original fruit markers disappear as soon as blending starts; only chopped particles remain
+  if (!blender.isBlending && blender.choppedBits.length === 0) {
     for (let i = 0; i < blender.fruits.length; i++) {
       const fruitName = blender.fruits[i];
       const color = fruitCatalog[fruitName].color;
