@@ -82,6 +82,13 @@ input[type="range"] {
   text-align: center;
 }
 
+#fruit-panel .hint {
+  font-size: 0.75rem;
+  color: #dfeeff;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
 .fruit {
   width: 100%;
   margin: 6px 0;
