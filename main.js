@@ -130,29 +130,28 @@ function createFruitImages() {
   const elements = document.querySelectorAll('.fruit');
   elements.forEach((el) => {
     const name = el.dataset.fruit;
-    const color = fruitCatalog[name] ? fruitCatalog[name].color : '#ffffff';
-    const size = 64;
-    const c = document.createElement('canvas');
-    c.width = size;
-    c.height = size;
-    const cx = c.getContext('2d');
-    // draw rounded circle background
-    cx.fillStyle = color;
-    cx.beginPath();
-    cx.arc(size / 2, size / 2, size / 2 - 4, 0, Math.PI * 2);
-    cx.fill();
-    // draw initial letter as simple glyph
-    cx.fillStyle = '#1a1a1a';
-    cx.font = 'bold 28px sans-serif';
-    cx.textAlign = 'center';
-    cx.textBaseline = 'middle';
-    cx.fillText(name.charAt(0).toUpperCase(), size / 2, size / 2);
-    const data = c.toDataURL();
-    el.style.backgroundImage = `url(${data})`;
-    el.style.backgroundSize = '56px 56px';
-    el.style.backgroundRepeat = 'no-repeat';
-    el.style.backgroundPosition = 'center';
-    el.textContent = '';
+    const localPath = `assets/fruits/${name}.png`;
+    // attempt to use downloaded fruit image, fallback to color circle
+    fetch(localPath, { method: 'HEAD' }).then((res) => {
+      if (res.ok) {
+        el.style.backgroundImage = `url(${localPath})`;
+        el.style.backgroundSize = '56px 56px';
+        el.style.backgroundRepeat = 'no-repeat';
+        el.style.backgroundPosition = 'center';
+        el.textContent = '';
+      } else {
+        // fallback: simple colored circle
+        const color = fruitCatalog[name] ? fruitCatalog[name].color : '#ffffff';
+        el.style.backgroundImage = '';
+        el.style.backgroundColor = color;
+        el.textContent = name.charAt(0).toUpperCase();
+      }
+    }).catch(() => {
+      const color = fruitCatalog[name] ? fruitCatalog[name].color : '#ffffff';
+      el.style.backgroundImage = '';
+      el.style.backgroundColor = color;
+      el.textContent = name.charAt(0).toUpperCase();
+    });
   });
 }
 
@@ -450,6 +449,8 @@ function update() {
       blender.isBlending = false;
       blender.blendProgress = 0;
       blender.swirlPhase = 0;
+      // stop sound
+      stopBlendSound();
     }
   }
 }
@@ -484,7 +485,10 @@ function attachFruitDragHandlers() {
     if (isInsideBlender(point.x, point.y)) {
       const fruitName = el.dataset.fruit;
       addFruitToBlender(fruitName);
-      el.style.display = 'none';
+      // mark as added but keep visible until Blend is pressed
+      el.dataset.added = 'true';
+      el.style.opacity = '0.6';
+      el.style.pointerEvents = 'none';
     }
     cleanupDrag(el);
   });
@@ -573,6 +577,14 @@ function bindButtons() {
     blender.blendDuration = Number(blendTimeInput.value);
     blender.swirlPhase = 0;
     blender.choppedBits = [];
+    // thicken the smoothie: increase particle density and reduce mobility
+    for (let p of waterParticles) {
+      p.sticky = 0.92;
+      p.r = Math.max(2, p.r - 0.6);
+    }
+    // spawn extra colored particles slowly when blending
+    // start blend sound
+    playBlendSound();
   });
 
   resetButton.addEventListener('click', () => {
@@ -590,3 +602,41 @@ window.addEventListener('load', () => {
   initWaterParticles();
   animate();
 });
+
+// Simple WebAudio-based blend sound (no external file)
+let audioCtx = null;
+let blendNode = null;
+function setupAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) {
+    audioCtx = null;
+  }
+}
+
+function playBlendSound() {
+  setupAudio();
+  if (!audioCtx) return;
+  // create white-noise-like buffer
+  const bufferSize = 2 * audioCtx.sampleRate;
+  const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const output = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1) * 0.25;
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = noiseBuffer;
+  const band = audioCtx.createBiquadFilter();
+  band.type = 'lowpass';
+  band.frequency.value = 1200;
+  noise.connect(band);
+  band.connect(audioCtx.destination);
+  noise.loop = true;
+  noise.start();
+  blendNode = { noise, band };
+}
+
+function stopBlendSound() {
+  if (!blendNode) return;
+  try { blendNode.noise.stop(); } catch (e) {}
+  blendNode = null;
+}
