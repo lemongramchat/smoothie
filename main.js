@@ -263,30 +263,7 @@ function drawBlender() {
   ctx.fillRect(left + 18, waterTop + 4, jarWidth - 36, jarHeight - 24);
 
   const thicknessBoost = blender.isBlending ? 1.6 : 1.2;
-  for (let i = 0; i < 14; i++) {
-    const x = left + 54 + i * ((jarWidth - 108) / 13);
-    const wave = Math.sin((i * 2.1) + blender.swirlPhase * 3.1) * (14 * thicknessBoost);
-    const blobY = waterTop + 20 + i * 8 + wave;
-    const blobWidth = 22 + (i % 3) * 12;
-    const blobHeight = 18 + (i % 4) * 10;
-    ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, ${0.16 + (i / 26)})`;
-    ctx.beginPath();
-    ctx.ellipse(x, blobY, blobWidth, blobHeight, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  ctx.beginPath();
-  ctx.ellipse(blender.x - 30, waterTop + 30, 58, 24, -0.46, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.beginPath();
-  ctx.ellipse(blender.x + 22, waterTop + 54, 48, 18, 0.28, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(20,20,20,0.08)';
-  ctx.beginPath();
-  ctx.ellipse(blender.x, waterTop + 90, 68, 16, 0, 0, Math.PI * 2);
-  ctx.fill();
+  // removed internal blob highlights and gloss ellipses: keep a pure smooth color inside the jar
   ctx.restore();
 
   // foam overlay
