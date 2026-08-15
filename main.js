@@ -104,6 +104,7 @@ function resetBlender() {
   });
   initSmoothieBody();
   updateIngredientUI();
+  try { updateRecipeUI(); } catch (e) {}
 }
 
 function clamp(value, min, max) {
@@ -230,6 +231,8 @@ function addFruitToBlender(fruitName) {
   blender.fruits.push(fruitName);
   // update the small Ingredients compartment
   updateIngredientUI();
+  // update recipe display
+  try { updateRecipeUI(); } catch (e) {}
 }
 
 function drawBackground() {
@@ -437,6 +440,7 @@ function loadRecipeFile(file) {
       if (data.waterColor) blender.waterColor = data.waterColor;
       if (typeof data.waterLevel === 'number') blender.waterLevel = data.waterLevel;
       updateIngredientUI();
+      try { updateRecipeUI(); } catch (e) {}
     } catch (e) {
       console.error('Failed to load recipe', e);
     }
@@ -462,6 +466,55 @@ function updateIngredientUI() {
     item.appendChild(txt);
     container.appendChild(item);
   });
+}
+
+function updateRecipeUI() {
+  const box = document.getElementById('recipeContent');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!blender.fruits || blender.fruits.length === 0) {
+    box.textContent = 'Empty';
+    return;
+  }
+
+  blender.fruits.forEach((name) => {
+    const it = document.createElement('div');
+    it.className = 'recipe-item';
+    const sw = document.createElement('span');
+    sw.className = 'recipe-swatch';
+    const saved = localStorage.getItem(`fruit-img-${name}`);
+    if (saved) sw.style.backgroundImage = `url(${saved})`;
+    else sw.style.background = (fruitCatalog[name] && fruitCatalog[name].color) || '#ccc';
+    it.appendChild(sw);
+    const t = document.createElement('span');
+    t.style.marginLeft = '8px';
+    t.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    it.appendChild(t);
+    box.appendChild(it);
+  });
+
+  const dur = document.createElement('div');
+  dur.className = 'recipe-item';
+  dur.textContent = `Blend: ${blender.blendDuration}s`;
+  box.appendChild(dur);
+
+  const wl = Math.round((blender.waterLevel || 0) * 100);
+  const water = document.createElement('div');
+  water.className = 'recipe-item';
+  water.textContent = `Water: ${wl}%`;
+  box.appendChild(water);
+
+  const res = document.createElement('div');
+  res.className = 'recipe-item';
+  const finalSw = document.createElement('span');
+  finalSw.className = 'recipe-swatch';
+  finalSw.style.background = `rgb(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]})`;
+  finalSw.style.marginRight = '8px';
+  res.appendChild(finalSw);
+  const lab = document.createElement('span');
+  lab.textContent = 'Result';
+  res.appendChild(lab);
+  box.appendChild(res);
 }
 
 function update() {
