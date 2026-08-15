@@ -13,10 +13,11 @@ const blender = {
   x: 0,
   y: 0,
   width: 300,
-  height: 360,
+  height: 370,
   waterLevel: 0.32,
   waterColor: [168, 224, 255],
   fruits: [],
+  choppedBits: [],
   isBlending: false,
   blendProgress: 0,
   blendDuration: 2
@@ -41,6 +42,7 @@ resize();
 
 function resetBlender() {
   blender.fruits = [];
+  blender.choppedBits = [];
   blender.waterColor = [168, 224, 255];
   blender.isBlending = false;
   blender.blendProgress = 0;
@@ -135,82 +137,81 @@ function drawBlender() {
   const jarWidth = blender.width;
   const jarHeight = blender.height;
 
-  // base stand
-  ctx.fillStyle = '#3a3d42';
-  ctx.fillRect(left - 30, top + jarHeight + 8, jarWidth + 60, 48);
-
-  // base detail
-  ctx.fillStyle = '#5c6066';
-  ctx.fillRect(left - 12, top + jarHeight + 18, jarWidth + 24, 10);
-
-  // blender body / jar
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.fillRect(left, top, jarWidth, jarHeight);
-  ctx.strokeStyle = '#eef6ff';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(left, top, jarWidth, jarHeight);
-
-  // transparent jar highlight
-  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  // realistic tall bottle shape
+  ctx.fillStyle = '#d9e2ed';
   ctx.beginPath();
-  ctx.moveTo(left + 18, top + 20);
-  ctx.lineTo(left + 18, top + jarHeight - 18);
-  ctx.stroke();
+  ctx.moveTo(left + 30, top + 10);
+  ctx.lineTo(left + 30, top + 32);
+  ctx.quadraticCurveTo(left + 10, top + 48, left + 10, top + 82);
+  ctx.lineTo(left + 10, top + jarHeight - 28);
+  ctx.quadraticCurveTo(left + 10, top + jarHeight + 8, left + 36, top + jarHeight + 8);
+  ctx.lineTo(left + jarWidth - 36, top + jarHeight + 8);
+  ctx.quadraticCurveTo(left + jarWidth - 10, top + jarHeight + 8, left + jarWidth - 10, top + jarHeight - 28);
+  ctx.lineTo(left + jarWidth - 10, top + 82);
+  ctx.quadraticCurveTo(left + jarWidth - 10, top + 48, left + jarWidth - 30, top + 32);
+  ctx.lineTo(left + jarWidth - 30, top + 10);
+  ctx.closePath();
+  ctx.fill();
 
-  // lid
-  ctx.fillStyle = '#1a1d22';
-  ctx.fillRect(left - 12, top - 26, jarWidth + 24, 22);
-  ctx.fillStyle = '#3d4147';
-  ctx.fillRect(left + 20, top - 42, jarWidth - 40, 18);
+  // shading and lid
+  ctx.fillStyle = 'rgba(255,255,255,0.20)';
+  ctx.fillRect(left + 18, top + 20, 16, jarHeight - 70);
+  ctx.fillStyle = '#2d3037';
+  ctx.fillRect(left + 35, top - 30, jarWidth - 70, 26);
+  ctx.fillStyle = '#3d4046';
+  ctx.fillRect(left + 58, top - 46, jarWidth - 116, 18);
+
+  // base stand
+  ctx.fillStyle = '#444a52';
+  ctx.fillRect(left - 34, top + jarHeight + 10, jarWidth + 68, 34);
+  ctx.fillStyle = '#5d646f';
+  ctx.fillRect(left - 10, top + jarHeight + 18, jarWidth + 20, 10);
 
   // water fill
   const fillHeight = jarHeight * blender.waterLevel;
   const waterTop = top + jarHeight - fillHeight;
   ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.95)`;
-  ctx.fillRect(left + 10, waterTop + 8, jarWidth - 20, fillHeight - 16);
+  ctx.fillRect(left + 18, waterTop + 10, jarWidth - 36, fillHeight - 18);
 
-  // fruit is chopped up and only the color remains in the smoothie
-  for (let i = 0; i < blender.fruits.length; i++) {
-    const name = blender.fruits[i];
-    const color = hexToRgb(fruitCatalog[name].color);
-    const x = left + 55 + (i % 3) * 70;
-    const y = waterTop + 26 + Math.floor(i / 3) * 40;
+  // bottom blade (realistic)
+  ctx.fillStyle = '#dfe7f3';
+  ctx.fillRect(left + 58, top + jarHeight - 18, jarWidth - 116, 12);
+  ctx.fillStyle = '#b5c0d1';
+  for (let i = 0; i < 5; i++) {
+    const bx = left + 42 + i * 42;
+    ctx.fillRect(bx, top + jarHeight - 30, 14, 26);
+  }
 
-    // chopped bits: small colored splinters and dots, no whole fruit icons
-    for (let j = 0; j < 4; j++) {
-      const px = x + (Math.random() - 0.5) * 22;
-      const py = y + (Math.random() - 0.5) * 22;
-      const size = 6 + Math.random() * 10;
-      ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.9)`;
-      ctx.fillRect(px, py, size, size * 0.7);
+  // chopped fruit remains in smoothie after blend starts
+  if (blender.isBlending || blender.choppedBits.length > 0) {
+    for (let i = 0; i < blender.choppedBits.length; i++) {
+      const bit = blender.choppedBits[i];
+      ctx.fillStyle = bit.color;
+      ctx.fillRect(bit.x, bit.y, bit.w, bit.h);
     }
   }
 
-  // blender blades when blending
-  if (blender.isBlending) {
-    ctx.save();
-    ctx.translate(blender.x, blender.y + 18);
-    ctx.rotate((performance.now() / 1000) * 18);
-    ctx.strokeStyle = '#dfe7f3';
-    ctx.lineWidth = 4;
-    for (let i = 0; i < 4; i++) {
+  // fruit icons remain visible until the Blend button is pressed
+  if (!blender.isBlending) {
+    for (let i = 0; i < blender.fruits.length; i++) {
+      const fruitName = blender.fruits[i];
+      const color = fruitCatalog[fruitName].color;
+      const x = left + 56 + (i % 3) * 70;
+      const y = waterTop + 26 + Math.floor(i / 3) * 44;
+      ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(90, 0);
-      ctx.stroke();
-      ctx.rotate(Math.PI / 2);
+      ctx.arc(x, y, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1d1d1d';
+      ctx.font = '10px Arial';
+      ctx.fillText(fruitName.charAt(0).toUpperCase(), x - 4, y + 3);
     }
-    ctx.restore();
   }
 
-  // status text below blender
+  // status below blender
   ctx.fillStyle = '#11263f';
   ctx.font = 'bold 18px Arial';
-  ctx.fillText(
-    blender.isBlending ? 'Blending...' : (blender.fruits.length ? 'Ready to blend' : 'Empty blender'),
-    left - 20,
-    top + jarHeight + 85
-  );
+  ctx.fillText(blender.isBlending ? 'Blending...' : (blender.fruits.length ? 'Ready to blend' : 'Empty blender'), left - 10, top + jarHeight + 85);
 }
 
 function drawFruitFloatingIcons() {
@@ -230,6 +231,24 @@ function update() {
     const t = clamp(blender.blendProgress / blender.blendDuration, 0, 1);
     const targetColor = computeBlendColor();
     blender.waterColor = mixColors([168, 224, 255], targetColor, t);
+
+    if (blender.choppedBits.length === 0 && blender.fruits.length > 0) {
+      blender.choppedBits = [];
+      blender.fruits.forEach((fruitName, idx) => {
+        const color = hexToRgb(fruitCatalog[fruitName].color);
+        const baseX = blender.x - 100 + (idx % 3) * 70;
+        const baseY = blender.y + 20 + Math.floor(idx / 3) * 40;
+        for (let i = 0; i < 8; i++) {
+          blender.choppedBits.push({
+            x: baseX + (Math.random() - 0.5) * 60,
+            y: baseY + (Math.random() - 0.5) * 50,
+            w: 6 + Math.random() * 8,
+            h: 4 + Math.random() * 8,
+            color: `rgba(${color.r}, ${color.g}, ${color.b}, 0.9)`
+          });
+        }
+      });
+    }
 
     if (t >= 1) {
       blender.isBlending = false;
@@ -315,6 +334,7 @@ function bindButtons() {
     blender.isBlending = true;
     blender.blendProgress = 0;
     blender.blendDuration = Number(blendTimeInput.value);
+    blender.choppedBits = [];
   });
 
   resetButton.addEventListener('click', () => {
