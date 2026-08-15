@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Grinder with Water - Prototype</title>
+  <link rel="stylesheet" href="style.css">
+ </head>
+<body>
+  <div id="ui">
+    <h1>Grinder + Water (Prototype)</h1>
+    <div id="controls">
+      <button id="toggleEmitter">Pause Emitter</button>
+      <button id="resetBtn">Reset</button>
+      <label>Emitter rate: <input id="emitterRate" type="range" min="0" max="40" value="8"></label>
+      <label>Grinder speed: <input id="grinderSpeed" type="range" min="-0.5" max="0.8" step="0.01" value="0.03"></label>
+      <label>Particles: <input id="maxParticles" type="range" min="100" max="4000" value="800"></label>
+    </div>
+    <p>Space: start/stop emitter • Left/Right: slow/fast rotation • R: reset • Drag grinder to move</p>
+  </div>
+  <canvas id="game"></canvas>
+  <script src="main.js"></script>
+</body>
+</html>
