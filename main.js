@@ -47,6 +47,7 @@ function resetBlender() {
   document.querySelectorAll('.fruit').forEach((el) => {
     el.style.opacity = '1';
     el.style.pointerEvents = 'auto';
+    el.style.display = 'block';
   });
 }
 
@@ -134,81 +135,83 @@ function drawBlender() {
   const jarWidth = blender.width;
   const jarHeight = blender.height;
 
-  // base
-  ctx.fillStyle = '#4d4d4d';
-  ctx.fillRect(left - 20, top + jarHeight + 10, jarWidth + 40, 30);
+  // base stand
+  ctx.fillStyle = '#3a3d42';
+  ctx.fillRect(left - 30, top + jarHeight + 8, jarWidth + 60, 48);
 
-  // lid handle
-  ctx.fillStyle = '#2a2a2a';
-  ctx.fillRect(left - 12, top - 26, jarWidth + 24, 20);
+  // base detail
+  ctx.fillStyle = '#5c6066';
+  ctx.fillRect(left - 12, top + jarHeight + 18, jarWidth + 24, 10);
 
-  // blender jar
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  // blender body / jar
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
   ctx.fillRect(left, top, jarWidth, jarHeight);
-  ctx.strokeStyle = '#f3f3f3';
+  ctx.strokeStyle = '#eef6ff';
   ctx.lineWidth = 3;
   ctx.strokeRect(left, top, jarWidth, jarHeight);
+
+  // transparent jar highlight
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(left + 18, top + 20);
+  ctx.lineTo(left + 18, top + jarHeight - 18);
+  ctx.stroke();
+
+  // lid
+  ctx.fillStyle = '#1a1d22';
+  ctx.fillRect(left - 12, top - 26, jarWidth + 24, 22);
+  ctx.fillStyle = '#3d4147';
+  ctx.fillRect(left + 20, top - 42, jarWidth - 40, 18);
 
   // water fill
   const fillHeight = jarHeight * blender.waterLevel;
   const waterTop = top + jarHeight - fillHeight;
   ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.95)`;
-  ctx.fillRect(left + 8, waterTop + 8, jarWidth - 16, fillHeight - 16);
+  ctx.fillRect(left + 10, waterTop + 8, jarWidth - 20, fillHeight - 16);
 
-  // blender cup highlights
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(left + 24, top + 26);
-  ctx.lineTo(left + 24, top + jarHeight - 26);
-  ctx.stroke();
+  // fruit pieces inside water
+  for (let i = 0; i < blender.fruits.length; i++) {
+    const name = blender.fruits[i];
+    const color = fruitCatalog[name].color;
+    const x = left + 52 + (i % 3) * 72;
+    const y = waterTop + 32 + Math.floor(i / 3) * 42;
 
-  // lid details
-  ctx.fillStyle = '#373737';
-  ctx.fillRect(left + 80, top - 52, 140, 26);
-  ctx.fillStyle = '#1f1f1f';
-  ctx.fillRect(left + 90, top - 64, 120, 16);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.stroke();
 
-  // blades / spin effect
+    ctx.fillStyle = '#141414';
+    ctx.font = '9px Arial';
+    ctx.fillText(name.charAt(0).toUpperCase(), x - 4, y + 3);
+  }
+
+  // blender blades when blending
   if (blender.isBlending) {
     ctx.save();
-    ctx.translate(blender.x, blender.y + 20);
+    ctx.translate(blender.x, blender.y + 18);
     ctx.rotate((performance.now() / 1000) * 18);
-    ctx.strokeStyle = '#afb8c7';
+    ctx.strokeStyle = '#dfe7f3';
     ctx.lineWidth = 4;
     for (let i = 0; i < 4; i++) {
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(80, 0);
+      ctx.lineTo(90, 0);
       ctx.stroke();
       ctx.rotate(Math.PI / 2);
     }
     ctx.restore();
   }
 
-  // fruit contents inside blender
-  for (let i = 0; i < blender.fruits.length; i++) {
-    const name = blender.fruits[i];
-    const color = fruitCatalog[name].color;
-    const x = left + 52 + (i % 3) * 70;
-    const y = waterTop + 24 + Math.floor(i / 3) * 40;
-
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, 18, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.font = '10px Arial';
-    ctx.fillText(name.charAt(0).toUpperCase(), x - 4, y + 3);
-  }
-
-  // status text
-  ctx.fillStyle = '#0d1a2d';
+  // status text below blender
+  ctx.fillStyle = '#11263f';
   ctx.font = 'bold 18px Arial';
   ctx.fillText(
     blender.isBlending ? 'Blending...' : (blender.fruits.length ? 'Ready to blend' : 'Empty blender'),
-    left - 10,
-    top + jarHeight + 60
+    left - 20,
+    top + jarHeight + 85
   );
 }
 
@@ -286,11 +289,13 @@ function cleanupDrag(el) {
   dragState.active = false;
   dragState.element = null;
   dragState.pointerId = null;
-  if (el) el.classList.remove('dragging');
-  el.style.position = 'static';
-  el.style.left = '';
-  el.style.top = '';
-  el.style.zIndex = '';
+  if (el) {
+    el.classList.remove('dragging');
+    el.style.position = 'static';
+    el.style.left = '';
+    el.style.top = '';
+    el.style.zIndex = '';
+  }
 }
 
 function moveFruitToPointer(clientX, clientY) {
