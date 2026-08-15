@@ -8,24 +8,25 @@
  </head>
 <body>
   <div id="ui">
-    <h1>Smoothie Blender (Prototype)</h1>
+    <h1>Smoothie Blender</h1>
     <div id="controls">
       <button id="blendBtn">Blend</button>
       <button id="resetBtn">Reset</button>
       <label>Blend time: <input id="blendTime" type="range" min="0.5" max="6" step="0.1" value="2"></label>
-      <label>Max fruits: <input id="maxFruits" type="number" min="1" max="10" value="5" style="width:60px"></label>
+      <label>Fruit limit: <input id="maxFruits" type="number" min="1" max="10" value="5" style="width:60px"></label>
     </div>
-    <p>Drag fruits into the blender, then press <strong>Blend</strong>.</p>
+    <p>Drag the fruit icons into the blender, then press Blend.</p>
   </div>
 
   <aside id="fruit-panel">
     <h3>Fruits</h3>
     <div class="fruit" data-fruit="banana" style="background:#ffe680">Banana</div>
     <div class="fruit" data-fruit="strawberry" style="background:#ff6b89">Strawberry</div>
-    <div class="fruit" data-fruit="blueberry" style="background:#5b7cff">Blueberry</div>
-    <div class="fruit" data-fruit="spinach" style="background:#5fb85f">Spinach</div>
-    <div class="fruit" data-fruit="mango" style="background:#ffb84d">Mango</div>
+    <div class="fruit" data-fruit="blueberry" style="background:#6f8cff">Blueberry</div>
+    <div class="fruit" data-fruit="spinach" style="background:#6cc66c">Spinach</div>
+    <div class="fruit" data-fruit="mango" style="background:#ffba4d">Mango</div>
   </aside>
+
   <canvas id="game"></canvas>
   <script src="main.js"></script>
 </body>
