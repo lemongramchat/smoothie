@@ -12,8 +12,13 @@
     <div id="controls">
       <button id="blendBtn">Blend</button>
       <button id="resetBtn">Reset</button>
+      <button id="saveRecipeBtn">Save Recipe</button>
+      <input id="loadRecipe" type="file" accept="application/json" style="display:none">
+      <button id="loadRecipeBtn">Load Recipe</button>
       <label>Blend time: <input id="blendTime" type="range" min="0.5" max="6" step="0.1" value="2"></label>
       <label>Fruit limit: <input id="maxFruits" type="number" min="1" max="10" value="5" style="width:60px"></label>
+      <label><input id="foamToggle" type="checkbox"> Foam</label>
+      <label><input id="slowMotion" type="checkbox"> Slow-motion</label>
     </div>
     <p>Drag the fruit icons into the blender, then press Blend.</p>
   </div>

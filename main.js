@@ -131,26 +131,55 @@ function createFruitImages() {
   elements.forEach((el) => {
     const name = el.dataset.fruit;
     const localPath = `assets/fruits/${name}.png`;
-    // attempt to use downloaded fruit image, fallback to color circle
-    fetch(localPath, { method: 'HEAD' }).then((res) => {
-      if (res.ok) {
-        el.style.backgroundImage = `url(${localPath})`;
-        el.style.backgroundSize = '56px 56px';
-        el.style.backgroundRepeat = 'no-repeat';
-        el.style.backgroundPosition = 'center';
-        el.textContent = '';
-      } else {
-        // fallback: simple colored circle
+    // check for previously uploaded image in localStorage
+    const saved = localStorage.getItem(`fruit-img-${name}`);
+    if (saved) {
+      el.style.backgroundImage = `url(${saved})`;
+      el.style.backgroundSize = '56px 56px';
+      el.style.backgroundRepeat = 'no-repeat';
+      el.style.backgroundPosition = 'center';
+      el.textContent = '';
+    } else {
+      // attempt to use downloaded fruit image, fallback to color circle
+      fetch(localPath, { method: 'HEAD' }).then((res) => {
+        if (res.ok) {
+          el.style.backgroundImage = `url(${localPath})`;
+          el.style.backgroundSize = '56px 56px';
+          el.style.backgroundRepeat = 'no-repeat';
+          el.style.backgroundPosition = 'center';
+          el.textContent = '';
+        } else {
+          // fallback: simple colored circle
+          const color = fruitCatalog[name] ? fruitCatalog[name].color : '#ffffff';
+          el.style.backgroundImage = '';
+          el.style.backgroundColor = color;
+          el.textContent = name.charAt(0).toUpperCase();
+        }
+      }).catch(() => {
         const color = fruitCatalog[name] ? fruitCatalog[name].color : '#ffffff';
         el.style.backgroundImage = '';
         el.style.backgroundColor = color;
         el.textContent = name.charAt(0).toUpperCase();
-      }
-    }).catch(() => {
-      const color = fruitCatalog[name] ? fruitCatalog[name].color : '#ffffff';
-      el.style.backgroundImage = '';
-      el.style.backgroundColor = color;
-      el.textContent = name.charAt(0).toUpperCase();
+      });
+    }
+
+    // enable dropping an image onto the fruit tile to replace it (stored in localStorage)
+    el.addEventListener('dragover', (ev) => { ev.preventDefault(); });
+    el.addEventListener('drop', (ev) => {
+      ev.preventDefault();
+      const f = ev.dataTransfer.files && ev.dataTransfer.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        el.style.backgroundImage = `url(${dataUrl})`;
+        el.style.backgroundSize = '56px 56px';
+        el.style.backgroundRepeat = 'no-repeat';
+        el.style.backgroundPosition = 'center';
+        el.textContent = '';
+        try { localStorage.setItem(`fruit-img-${name}`, dataUrl); } catch (e) {}
+      };
+      reader.readAsDataURL(f);
     });
   });
 }
@@ -271,6 +300,19 @@ function drawBlender() {
     ctx.fill();
   });
 
+  // foam overlay
+  const foamToggleEl = document.getElementById('foamToggle');
+  if ((foamToggleEl && foamToggleEl.checked) && blender.isBlending) {
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    for (let i = 0; i < 180; i++) {
+      const fx = blender.x - 90 + Math.random() * 180;
+      const fy = waterTop + 4 + Math.random() * 20;
+      ctx.beginPath();
+      ctx.arc(fx, fy, 1 + Math.random() * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   // swirling motion lines while blending
   if (blender.isBlending) {
     ctx.strokeStyle = 'rgba(255,255,255,0.25)';
@@ -374,39 +416,134 @@ function handleBladeCollision(p) {
   }
 }
 
+// UI helpers: save/load recipe
+function saveRecipe() {
+  const data = {
+    fruits: blender.fruits.slice(),
+    blendTime: blender.blendDuration,
+    waterColor: blender.waterColor,
+    waterLevel: blender.waterLevel
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'smoothie_recipe.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function loadRecipeFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (Array.isArray(data.fruits)) {
+        blender.fruits = data.fruits.slice();
+        document.querySelectorAll('.fruit').forEach((el) => {
+          if (blender.fruits.includes(el.dataset.fruit)) {
+            el.dataset.added = 'true';
+            el.style.opacity = '0.6';
+            el.style.pointerEvents = 'none';
+          } else {
+            el.dataset.added = '';
+            el.style.opacity = '1';
+            el.style.pointerEvents = 'auto';
+          }
+        });
+      }
+      if (data.blendTime) blender.blendDuration = Number(data.blendTime);
+      if (data.waterColor) blender.waterColor = data.waterColor;
+      if (typeof data.waterLevel === 'number') blender.waterLevel = data.waterLevel;
+    } catch (e) {
+      console.error('Failed to load recipe', e);
+    }
+  };
+  reader.readAsText(file);
+}
+
 function update() {
   // update water particle physics
   const left = blender.x - blender.width / 2 + 18;
   const right = blender.x + blender.width / 2 - 18;
   const top = blender.y - blender.height / 2 + 8;
   const bottom = blender.y + blender.height / 2 + 6;
+  // SPH-like density & forces (naive O(n^2), fine for small particle counts)
+  const h = 22; // interaction radius
+  const restDensity = 8.0;
+  const stiffness = 1.2;
+  const viscosity = 0.12;
+  const dt = 0.016 * (document.getElementById('slowMotion')?.checked ? 0.5 : 1.0);
+
+  const densities = new Array(waterParticles.length).fill(0);
+  for (let i = 0; i < waterParticles.length; i++) {
+    const pi = waterParticles[i];
+    let dens = 0;
+    for (let j = 0; j < waterParticles.length; j++) {
+      const pj = waterParticles[j];
+      const dx = pi.x - pj.x;
+      const dy = pi.y - pj.y;
+      const r = Math.hypot(dx, dy);
+      if (r < h) dens += (h - r);
+    }
+    densities[i] = dens;
+  }
+
+  const pressures = densities.map(d => stiffness * Math.max(0, d - restDensity));
+
   for (let i = 0; i < waterParticles.length; i++) {
     const p = waterParticles[i];
-    // gravity and damping; thick smoothies are more viscous
+    let fx = 0;
+    let fy = 0;
+
+    for (let j = 0; j < waterParticles.length; j++) {
+      if (i === j) continue;
+      const q = waterParticles[j];
+      const dx = p.x - q.x;
+      const dy = p.y - q.y;
+      const r = Math.hypot(dx, dy) || 0.001;
+      if (r < h) {
+        const diff = (h - r);
+        // pressure force (simple)
+        const press = - (pressures[i] + pressures[j]) * 0.5;
+        fx += (press * (dx / r)) * (diff * 0.002);
+        fy += (press * (dy / r)) * (diff * 0.002);
+        // viscosity-like velocity blending
+        fx += viscosity * (q.vx - p.vx) * (diff * 0.02);
+        fy += viscosity * (q.vy - p.vy) * (diff * 0.02);
+      }
+    }
+
+    // gravity
     const gravity = 0.12;
-    p.vy += gravity * (blender.isBlending ? 0.25 : 1.0);
-    p.vx *= blender.isBlending ? 0.985 : 0.992;
+    fy += gravity * (blender.isBlending ? 0.5 : 1.0);
+
+    // integrate
+    p.vx += fx * dt;
+    p.vy += fy * dt;
+    // damping
+    p.vx *= blender.isBlending ? 0.995 : 0.998;
     p.vy *= blender.isBlending ? 0.995 : 0.998;
 
-    p.x += p.vx;
-    p.y += p.vy;
+    p.x += p.vx * (1.0);
+    p.y += p.vy * (1.0);
 
     // boundary - keep particles inside jar rectangle approximation
     if (p.x < left + p.r) {
       p.x = left + p.r;
-      p.vx *= -0.5;
+      p.vx *= -0.3;
     }
     if (p.x > right - p.r) {
       p.x = right - p.r;
-      p.vx *= -0.5;
+      p.vx *= -0.3;
     }
     if (p.y < top + p.r) {
       p.y = top + p.r;
-      p.vy *= -0.4;
+      p.vy *= -0.3;
     }
     if (p.y > bottom - p.r) {
       p.y = bottom - p.r;
-      p.vy *= -0.5;
+      p.vy *= -0.4;
       p.vx *= 0.9;
     }
 
@@ -568,6 +705,11 @@ function updateDragPosition() {
 function bindButtons() {
   const blendButton = document.getElementById('blendBtn');
   const resetButton = document.getElementById('resetBtn');
+  const saveRecipeBtn = document.getElementById('saveRecipeBtn');
+  const loadRecipeBtn = document.getElementById('loadRecipeBtn');
+  const loadRecipeInput = document.getElementById('loadRecipe');
+  const foamToggle = document.getElementById('foamToggle');
+  const slowMotion = document.getElementById('slowMotion');
   const blendTimeInput = document.getElementById('blendTime');
 
   blendButton.addEventListener('click', () => {
@@ -593,6 +735,17 @@ function bindButtons() {
       el.style.display = 'block';
     });
   });
+
+  saveRecipeBtn.addEventListener('click', () => saveRecipe());
+  loadRecipeBtn.addEventListener('click', () => loadRecipeInput.click());
+  loadRecipeInput.addEventListener('change', (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    if (f) loadRecipeFile(f);
+    ev.target.value = '';
+  });
+
+  // foam toggle and slow motion simply read their state from the DOM
+  // expose to render/update via DOM checks when needed
 }
 
 window.addEventListener('load', () => {
