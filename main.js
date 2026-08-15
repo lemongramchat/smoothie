@@ -210,23 +210,23 @@ function spawnChoppedBits() {
     const cx = blender.x;
     const cy = blender.y + 25;
 
-    for (let i = 0; i < 10; i++) {
-      const angle = (Math.PI * 2 * i) / 10 + index * 0.7;
-      const radius = 18 + Math.random() * 44;
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 * i) / 8 + index * 0.8;
+      const radius = 12 + Math.random() * 52;
       blender.choppedBits.push({
         x: cx + Math.cos(angle) * radius,
         y: cy + Math.sin(angle) * radius,
-        w: 10 + Math.random() * 12,
-        h: 7 + Math.random() * 10,
-        color: `rgba(${color.r}, ${color.g}, ${color.b}, 0.95)`,
+        w: 18 + Math.random() * 26,
+        h: 12 + Math.random() * 20,
+        color: `rgba(${color.r}, ${color.g}, ${color.b}, 0.32)`,
         angle: Math.random() * Math.PI * 2,
-        spin: (Math.random() - 0.5) * 0.45,
-        driftX: (Math.random() - 0.5) * 0.9,
-        driftY: (Math.random() - 0.5) * 0.9
+        spin: (Math.random() - 0.5) * 0.25,
+        driftX: (Math.random() - 0.5) * 0.5,
+        driftY: (Math.random() - 0.5) * 0.5
       });
     }
   });
-  // the smoothie stays smooth and continuous; no particle spray is used
+  // color-only puree, no visible fruit chunks or particles
 }
 
 function drawBlender() {
@@ -350,7 +350,7 @@ function drawBlender() {
   ctx.fillRect(-14, -18, 28, 12);
   ctx.restore();
 
-  // chopped fruit pieces: rotate and swirl in the smoothie
+  // smooth color blobs only; no fruit chunks or particles remain visible
   if (blender.isBlending || blender.choppedBits.length > 0) {
     for (let i = 0; i < blender.choppedBits.length; i++) {
       const bit = blender.choppedBits[i];
@@ -358,7 +358,9 @@ function drawBlender() {
       ctx.translate(bit.x, bit.y);
       ctx.rotate(bit.angle);
       ctx.fillStyle = bit.color;
-      ctx.fillRect(-bit.w / 2, -bit.h / 2, bit.w, bit.h);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, bit.w, bit.h, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
     }
   }
