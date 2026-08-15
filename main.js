@@ -321,6 +321,31 @@ function animate() {
 
 function attachFruitDragHandlers() {
   const fruitEls = document.querySelectorAll('.fruit');
+
+  window.addEventListener('pointermove', (event) => {
+    if (!dragState.active || !dragState.element) return;
+    if (dragState.pointerId !== null && event.pointerId !== dragState.pointerId) return;
+    event.preventDefault();
+    moveFruitToPointer(event.clientX, event.clientY);
+  });
+
+  window.addEventListener('pointerup', (event) => {
+    if (!dragState.active || !dragState.element) return;
+    if (dragState.pointerId !== null && event.pointerId !== dragState.pointerId) return;
+    const point = getCanvasPoint(event.clientX, event.clientY);
+    const el = dragState.element;
+    if (isInsideBlender(point.x, point.y)) {
+      const fruitName = el.dataset.fruit;
+      addFruitToBlender(fruitName);
+      el.style.display = 'none';
+    }
+    cleanupDrag(el);
+  });
+
+  window.addEventListener('pointercancel', () => {
+    if (dragState.element) cleanupDrag(dragState.element);
+  });
+
   fruitEls.forEach((el) => {
     el.addEventListener('pointerdown', (event) => {
       event.preventDefault();
@@ -328,28 +353,8 @@ function attachFruitDragHandlers() {
       dragState.element = el;
       dragState.pointerId = event.pointerId;
       el.classList.add('dragging');
-      el.setPointerCapture(event.pointerId);
       moveFruitToPointer(event.clientX, event.clientY);
     });
-
-    el.addEventListener('pointermove', (event) => {
-      if (!dragState.active || dragState.element !== el) return;
-      moveFruitToPointer(event.clientX, event.clientY);
-    });
-
-    el.addEventListener('pointerup', (event) => {
-      if (!dragState.active || dragState.element !== el) return;
-      const point = getCanvasPoint(event.clientX, event.clientY);
-      if (isInsideBlender(point.x, point.y)) {
-        const fruitName = el.dataset.fruit;
-        addFruitToBlender(fruitName);
-        el.style.display = 'none';
-      }
-      cleanupDrag(el);
-    });
-
-    el.addEventListener('pointercancel', () => cleanupDrag(el));
-    el.addEventListener('lostpointercapture', () => cleanupDrag(el));
   });
 }
 
