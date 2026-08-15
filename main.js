@@ -169,23 +169,21 @@ function drawBlender() {
   ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.95)`;
   ctx.fillRect(left + 10, waterTop + 8, jarWidth - 20, fillHeight - 16);
 
-  // fruit pieces inside water
+  // fruit is chopped up and only the color remains in the smoothie
   for (let i = 0; i < blender.fruits.length; i++) {
     const name = blender.fruits[i];
-    const color = fruitCatalog[name].color;
-    const x = left + 52 + (i % 3) * 72;
-    const y = waterTop + 32 + Math.floor(i / 3) * 42;
+    const color = hexToRgb(fruitCatalog[name].color);
+    const x = left + 55 + (i % 3) * 70;
+    const y = waterTop + 26 + Math.floor(i / 3) * 40;
 
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, 18, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-    ctx.stroke();
-
-    ctx.fillStyle = '#141414';
-    ctx.font = '9px Arial';
-    ctx.fillText(name.charAt(0).toUpperCase(), x - 4, y + 3);
+    // chopped bits: small colored splinters and dots, no whole fruit icons
+    for (let j = 0; j < 4; j++) {
+      const px = x + (Math.random() - 0.5) * 22;
+      const py = y + (Math.random() - 0.5) * 22;
+      const size = 6 + Math.random() * 10;
+      ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.9)`;
+      ctx.fillRect(px, py, size, size * 0.7);
+    }
   }
 
   // blender blades when blending
