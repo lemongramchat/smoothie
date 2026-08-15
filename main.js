@@ -29,7 +29,13 @@ const dragState = {
   element: null,
   pointerId: null,
   x: 0,
-  y: 0
+  y: 0,
+  targetX: 0,
+  targetY: 0,
+  offsetX: 0,
+  offsetY: 0,
+  lastX: 0,
+  lastY: 0
 };
 
 function resize() {
@@ -314,6 +320,7 @@ function render() {
 }
 
 function animate() {
+  updateDragPosition();
   update();
   render();
   requestAnimationFrame(animate);
@@ -352,6 +359,10 @@ function attachFruitDragHandlers() {
       dragState.active = true;
       dragState.element = el;
       dragState.pointerId = event.pointerId;
+      dragState.offsetX = 0;
+      dragState.offsetY = 0;
+      dragState.targetX = el.getBoundingClientRect().left;
+      dragState.targetY = el.getBoundingClientRect().top;
       el.classList.add('dragging');
       moveFruitToPointer(event.clientX, event.clientY);
     });
@@ -362,22 +373,52 @@ function cleanupDrag(el) {
   dragState.active = false;
   dragState.element = null;
   dragState.pointerId = null;
+  dragState.offsetX = 0;
+  dragState.offsetY = 0;
+  dragState.lastX = 0;
+  dragState.lastY = 0;
   if (el) {
     el.classList.remove('dragging');
     el.style.position = 'static';
     el.style.left = '';
     el.style.top = '';
     el.style.zIndex = '';
+    el.style.transform = '';
   }
 }
 
 function moveFruitToPointer(clientX, clientY) {
   const el = dragState.element;
   if (!el) return;
+
+  const rect = el.getBoundingClientRect();
+  if (dragState.offsetX === 0 && dragState.offsetY === 0) {
+    dragState.offsetX = clientX - rect.left;
+    dragState.offsetY = clientY - rect.top;
+  }
+
+  dragState.targetX = clientX - dragState.offsetX;
+  dragState.targetY = clientY - dragState.offsetY;
+  dragState.lastX = clientX;
+  dragState.lastY = clientY;
+
   el.style.position = 'fixed';
-  el.style.left = `${clientX - el.offsetWidth / 2}px`;
-  el.style.top = `${clientY - el.offsetHeight / 2}px`;
+  el.style.left = `${dragState.targetX}px`;
+  el.style.top = `${dragState.targetY}px`;
   el.style.zIndex = '99';
+}
+
+function updateDragPosition() {
+  const el = dragState.element;
+  if (!dragState.active || !el) return;
+
+  const currentX = parseFloat(el.style.left || '0');
+  const currentY = parseFloat(el.style.top || '0');
+  const smoothX = lerp(currentX, dragState.targetX, 0.28);
+  const smoothY = lerp(currentY, dragState.targetY, 0.28);
+
+  el.style.left = `${smoothX}px`;
+  el.style.top = `${smoothY}px`;
 }
 
 function bindButtons() {
