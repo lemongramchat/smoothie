@@ -1,65 +1,32 @@
-# Grinder with Water - Prototype
+# Smoothie Blender Game
 
-Simple HTML5 Canvas prototype showing a rotating grinder interacting with water particles.
+A small HTML5 game where the player drags fruit icons into a blender, presses Blend, and watches the fruits turn into chopped smoothie pieces.
 
-Run: open `index.html` in a browser (double-click or serve with a simple static server).
+Run locally:
+- open `index.html` directly in the browser, or
+- serve the folder with a static server such as `python3 -m http.server 8000`
 
-Controls:
-- Space: toggle emitter
-- Left/Right arrows: change grinder rotation speed
-- R: reset
-- Drag the grinder with mouse to move it
+Gameplay:
+- Drag fruit cards from the side panel into the blender jar.
+- The fruit icons stay visible until Blend is pressed.
+- Press Blend to trigger chopping and swirling.
+- Chopped fruit pieces stay inside the smoothie and the liquid color shifts toward the fruit colors.
+- Press Reset to clear the blender.
 
-Blender script
-- A Blender helper script is included: [blender_setup.py](blender_setup.py)
-- To run inside Blender: open it in Text Editor and Run Script.
-- Or from terminal: `blender --background --python blender_setup.py`
+Project notes:
+- This is a static site; no server runtime is required for gameplay.
+- This version is designed for GitHub Pages deployment.
 
-Mantaflow helper
-- A Mantaflow convenience script is included: [blender_mantaflow_setup.py](blender_mantaflow_setup.py)
-- Run it inside Blender or headless; it will create a domain and inflow and print manual steps.
+Deployment:
+- This repo is published to GitHub Pages through the `gh-pages` branch.
+- The live site is available at: https://lemongramchat.github.io/smoothie/
 
-Deploy to GitHub Pages
-- To publish this folder as a GitHub Pages site, you can create a repository and push the files.
-- For a user site (username.github.io): name the repository `username.github.io` and push to `main`.
-- For a project site: push the site to the `gh-pages` branch and enable Pages from that branch.
-
-I included a helper script `deploy.sh` that attempts to create the repo with the `gh` CLI
-and push the site. Usage:
-
-```bash
-cd /path/to/smoothie
-./deploy.sh <github-username> <repo-name>
-```
-
-If you prefer manual steps, here they are:
-
-1) Create a new repository on GitHub (either `username.github.io` for a user site or any name for a project site).
-2) In the project folder:
-
-```bash
-git init
-git add -A
-git commit -m "Initial site"
-git remote add origin git@github.com:USERNAME/REPO.git
-```
-
-3a) For a user site:
-```bash
-git push -u origin main
-# Then visit https://USERNAME.github.io/
-```
-
-3b) For a project site:
-```bash
-git checkout --orphan gh-pages
-git add -A
-git commit -m "Deploy to gh-pages"
-git push -f origin gh-pages
-git checkout main
-git branch -D gh-pages
-# Then visit https://USERNAME.github.io/REPO/
-```
+Artifacts:
+- `index.html` — page structure and UI
+- `style.css` — layout and blender styling
+- `main.js` — canvas rendering and game logic
+- `SPECIFICATION.md` — game requirements and acceptance criteria
+- `deploy.sh` — optional GitHub Pages helper
 
 
 
