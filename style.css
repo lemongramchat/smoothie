@@ -85,10 +85,11 @@ input[type="range"] {
 .fruit {
   width: 100%;
   margin: 6px 0;
+  height: 56px;
   border-radius: 12px;
   cursor: grab;
   text-align: center;
-  padding: 9px 8px;
+  padding: 6px 0;
   font-weight: 700;
   color: #111;
   touch-action: none;
@@ -96,6 +97,9 @@ input[type="range"] {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   box-shadow: inset 0 -3px 0 rgba(0,0,0,0.15);
+  background-color: transparent;
+  background-size: 56px 56px;
+  background-position: center;
 }
 
 .fruit:active,
@@ -109,6 +113,14 @@ input[type="range"] {
   width: 100vw;
   height: 100vh;
   touch-action: none;
+}
+
+/* Phone and tablet friendly adjustments */
+@media (max-width: 720px) {
+  #ui { left: 8px; top: 8px; padding: 10px; }
+  #fruit-panel { right: 8px; top: 8px; width: 120px; padding: 10px; }
+  .fruit { height: 48px; background-size: 48px 48px; }
+  button { padding: 10px 14px; font-size: 15px; }
 }
 
 

@@ -24,6 +24,26 @@ const blender = {
   swirlPhase: 0
 };
 
+// particle-based water and fruit particles
+const waterParticles = [];
+const MAX_WATER_PARTICLES = 220;
+
+function initWaterParticles() {
+  waterParticles.length = 0;
+  const fillRatio = blender.waterLevel;
+  const left = blender.x - blender.width / 2 + 20;
+  const right = blender.x + blender.width / 2 - 20;
+  const top = blender.y - blender.height / 2;
+  const jarHeight = blender.height;
+  const waterTop = top + jarHeight - jarHeight * fillRatio + 10;
+
+  for (let i = 0; i < MAX_WATER_PARTICLES; i++) {
+    const x = lerp(left, right, Math.random());
+    const y = lerp(waterTop + 4, top + jarHeight - 24, Math.random());
+    waterParticles.push({ x, y, vx: (Math.random() - 0.5) * 0.3, vy: Math.random() * 0.3, r: 3 + Math.random() * 2, color: `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.9)`, sticky: 0.92 });
+  }
+}
+
 const dragState = {
   active: false,
   element: null,
@@ -59,6 +79,7 @@ function resetBlender() {
     el.style.pointerEvents = 'auto';
     el.style.display = 'block';
   });
+  initWaterParticles();
 }
 
 function clamp(value, min, max) {
@@ -103,6 +124,36 @@ function hexToRgb(hex) {
     g: (bigint >> 8) & 255,
     b: bigint & 255
   };
+}
+
+function createFruitImages() {
+  const elements = document.querySelectorAll('.fruit');
+  elements.forEach((el) => {
+    const name = el.dataset.fruit;
+    const color = fruitCatalog[name] ? fruitCatalog[name].color : '#ffffff';
+    const size = 64;
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    const cx = c.getContext('2d');
+    // draw rounded circle background
+    cx.fillStyle = color;
+    cx.beginPath();
+    cx.arc(size / 2, size / 2, size / 2 - 4, 0, Math.PI * 2);
+    cx.fill();
+    // draw initial letter as simple glyph
+    cx.fillStyle = '#1a1a1a';
+    cx.font = 'bold 28px sans-serif';
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    cx.fillText(name.charAt(0).toUpperCase(), size / 2, size / 2);
+    const data = c.toDataURL();
+    el.style.backgroundImage = `url(${data})`;
+    el.style.backgroundSize = '56px 56px';
+    el.style.backgroundRepeat = 'no-repeat';
+    el.style.backgroundPosition = 'center';
+    el.textContent = '';
+  });
 }
 
 function getCanvasPoint(clientX, clientY) {
@@ -162,6 +213,20 @@ function spawnChoppedBits() {
       });
     }
   });
+  // also inject small colored particles into the water to simulate chopped fruit mixing
+  blender.choppedBits.forEach((bit) => {
+    for (let k = 0; k < 4; k++) {
+      waterParticles.push({
+        x: bit.x + (Math.random() - 0.5) * 8,
+        y: bit.y + (Math.random() - 0.5) * 8,
+        vx: (Math.random() - 0.5) * 1.2,
+        vy: (Math.random() - 0.5) * 1.2,
+        r: 2 + Math.random() * 2,
+        color: bit.color.replace('0.9', '0.98'),
+        sticky: 0.85
+      });
+    }
+  });
 }
 
 function drawBlender() {
@@ -169,20 +234,13 @@ function drawBlender() {
   const top = blender.y - blender.height / 2;
   const jarWidth = blender.width;
   const jarHeight = blender.height;
-
-  // realistic tall bottle shape
-  ctx.fillStyle = '#d9e2ed';
+  // blender jar: narrow at bottom, wider at top
+  ctx.fillStyle = '#d9eaf2';
   ctx.beginPath();
-  ctx.moveTo(left + 30, top + 10);
-  ctx.lineTo(left + 30, top + 32);
-  ctx.quadraticCurveTo(left + 10, top + 48, left + 10, top + 82);
-  ctx.lineTo(left + 10, top + jarHeight - 28);
-  ctx.quadraticCurveTo(left + 10, top + jarHeight + 8, left + 36, top + jarHeight + 8);
-  ctx.lineTo(left + jarWidth - 36, top + jarHeight + 8);
-  ctx.quadraticCurveTo(left + jarWidth - 10, top + jarHeight + 8, left + jarWidth - 10, top + jarHeight - 28);
-  ctx.lineTo(left + jarWidth - 10, top + 82);
-  ctx.quadraticCurveTo(left + jarWidth - 10, top + 48, left + jarWidth - 30, top + 32);
-  ctx.lineTo(left + jarWidth - 30, top + 10);
+  ctx.moveTo(left + 40, top + 8);
+  ctx.bezierCurveTo(left + 20, top + 30, left + 18, top + jarHeight - 24, left + 36, top + jarHeight + 6);
+  ctx.lineTo(left + jarWidth - 36, top + jarHeight + 6);
+  ctx.bezierCurveTo(left + jarWidth - 18, top + jarHeight - 24, left + jarWidth - 20, top + 30, left + jarWidth - 40, top + 8);
   ctx.closePath();
   ctx.fill();
 
@@ -200,11 +258,19 @@ function drawBlender() {
   ctx.fillStyle = '#5d646f';
   ctx.fillRect(left - 10, top + jarHeight + 18, jarWidth + 20, 10);
 
-  // water fill
+  // water fill (soft background)
   const fillHeight = jarHeight * blender.waterLevel;
   const waterTop = top + jarHeight - fillHeight;
-  ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.95)`;
+  ctx.fillStyle = `rgba(${blender.waterColor[0]}, ${blender.waterColor[1]}, ${blender.waterColor[2]}, 0.12)`;
   ctx.fillRect(left + 18, waterTop + 10, jarWidth - 36, fillHeight - 18);
+
+  // draw water particle dots
+  waterParticles.forEach((p) => {
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
 
   // swirling motion lines while blending
   if (blender.isBlending) {
@@ -218,14 +284,20 @@ function drawBlender() {
     ctx.stroke();
   }
 
-  // bottom blade (realistic)
+  // rotating blade at bottom (visual)
+  const bladeCenterX = blender.x;
+  const bladeCenterY = top + jarHeight - 20;
+  const bladeLen = jarWidth * 0.5;
+  const bladeSpeed = blender.isBlending ? 0.45 + blender.blendDuration * 0.15 : 0.0;
+  blender.bladeAngle = (blender.bladeAngle || 0) + bladeSpeed;
+  ctx.save();
+  ctx.translate(bladeCenterX, bladeCenterY);
+  ctx.rotate(blender.bladeAngle);
+  ctx.fillStyle = '#bfc9d6';
+  ctx.fillRect(-bladeLen / 2, -6, bladeLen, 12);
   ctx.fillStyle = '#dfe7f3';
-  ctx.fillRect(left + 58, top + jarHeight - 18, jarWidth - 116, 12);
-  ctx.fillStyle = '#b5c0d1';
-  for (let i = 0; i < 5; i++) {
-    const bx = left + 42 + i * 42;
-    ctx.fillRect(bx, top + jarHeight - 30, 14, 26);
-  }
+  ctx.fillRect(-14, -18, 28, 12);
+  ctx.restore();
 
   // chopped fruit pieces: rotate and swirl in the smoothie
   if (blender.isBlending || blender.choppedBits.length > 0) {
@@ -274,7 +346,75 @@ function drawFruitFloatingIcons() {
   });
 }
 
+// collision of particle with rotating blade — if close to blade line, apply impulse
+function handleBladeCollision(p) {
+  const top = blender.y - blender.height / 2;
+  const jarHeight = blender.height;
+  const bladeCenterX = blender.x;
+  const bladeCenterY = top + jarHeight - 20;
+  const bladeLen = blender.width * 0.5;
+  const angle = blender.bladeAngle || 0;
+
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const dx = p.x - bladeCenterX;
+  const dy = p.y - bladeCenterY;
+  const proj = dx * cos + dy * sin;
+  const clamped = Math.max(-bladeLen / 2, Math.min(bladeLen / 2, proj));
+  const closestX = bladeCenterX + clamped * cos;
+  const closestY = bladeCenterY + clamped * sin;
+  const dist = Math.hypot(p.x - closestX, p.y - closestY);
+  if (dist < p.r + 4) {
+    const nx = (p.x - closestX) / (dist || 1);
+    const ny = (p.y - closestY) / (dist || 1);
+    const dot = p.vx * nx + p.vy * ny;
+    p.vx = p.vx - 1.9 * dot * nx + (sin * 0.6);
+    p.vy = p.vy - 1.9 * dot * ny - (cos * 0.6);
+    p.vx *= 0.9;
+    p.vy *= 0.9;
+  }
+}
+
 function update() {
+  // update water particle physics
+  const left = blender.x - blender.width / 2 + 18;
+  const right = blender.x + blender.width / 2 - 18;
+  const top = blender.y - blender.height / 2 + 8;
+  const bottom = blender.y + blender.height / 2 + 6;
+  for (let i = 0; i < waterParticles.length; i++) {
+    const p = waterParticles[i];
+    // gravity and damping; thick smoothies are more viscous
+    const gravity = 0.12;
+    p.vy += gravity * (blender.isBlending ? 0.25 : 1.0);
+    p.vx *= blender.isBlending ? 0.985 : 0.992;
+    p.vy *= blender.isBlending ? 0.995 : 0.998;
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // boundary - keep particles inside jar rectangle approximation
+    if (p.x < left + p.r) {
+      p.x = left + p.r;
+      p.vx *= -0.5;
+    }
+    if (p.x > right - p.r) {
+      p.x = right - p.r;
+      p.vx *= -0.5;
+    }
+    if (p.y < top + p.r) {
+      p.y = top + p.r;
+      p.vy *= -0.4;
+    }
+    if (p.y > bottom - p.r) {
+      p.y = bottom - p.r;
+      p.vy *= -0.5;
+      p.vx *= 0.9;
+    }
+
+    // blade collision
+    handleBladeCollision(p);
+  }
+
   if (blender.isBlending) {
     blender.blendProgress += 0.016;
     blender.swirlPhase += 0.12;
@@ -446,5 +586,7 @@ function bindButtons() {
 window.addEventListener('load', () => {
   attachFruitDragHandlers();
   bindButtons();
+  createFruitImages();
+  initWaterParticles();
   animate();
 });
