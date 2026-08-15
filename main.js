@@ -346,22 +346,7 @@ function drawBlender() {
 
   // no visible fruit evidence remains inside the blender; only the blended color shows
 
-  // original fruit markers disappear as soon as blending starts; only the smoothie color remains
-  if (!blender.isBlending && blender.choppedBits.length === 0) {
-    for (let i = 0; i < blender.fruits.length; i++) {
-      const fruitName = blender.fruits[i];
-      const color = fruitCatalog[fruitName].color;
-      const x = left + 56 + (i % 3) * 70;
-      const y = waterTop + 26 + Math.floor(i / 3) * 44;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, 16, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#1d1d1d';
-      ctx.font = '10px Arial';
-      ctx.fillText(fruitName.charAt(0).toUpperCase(), x - 4, y + 3);
-    }
-  }
+  // original fruit markers intentionally not drawn inside the blender
 
   // status below blender
   ctx.fillStyle = '#11263f';
