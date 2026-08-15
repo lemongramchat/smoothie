@@ -205,28 +205,7 @@ function drawBackground() {
 
 function spawnChoppedBits() {
   blender.choppedBits = [];
-  blender.fruits.forEach((fruitName, index) => {
-    const color = hexToRgb(fruitCatalog[fruitName].color);
-    const cx = blender.x;
-    const cy = blender.y + 25;
-
-    for (let i = 0; i < 8; i++) {
-      const angle = (Math.PI * 2 * i) / 8 + index * 0.8;
-      const radius = 12 + Math.random() * 52;
-      blender.choppedBits.push({
-        x: cx + Math.cos(angle) * radius,
-        y: cy + Math.sin(angle) * radius,
-        w: 18 + Math.random() * 26,
-        h: 12 + Math.random() * 20,
-        color: `rgba(${color.r}, ${color.g}, ${color.b}, 0.32)`,
-        angle: Math.random() * Math.PI * 2,
-        spin: (Math.random() - 0.5) * 0.25,
-        driftX: (Math.random() - 0.5) * 0.5,
-        driftY: (Math.random() - 0.5) * 0.5
-      });
-    }
-  });
-  // color-only puree, no visible fruit chunks or particles
+  // no visible fruit chunk evidence inside the smoothie: only the final blended color remains
 }
 
 function drawBlender() {
@@ -350,22 +329,9 @@ function drawBlender() {
   ctx.fillRect(-14, -18, 28, 12);
   ctx.restore();
 
-  // smooth color blobs only; no fruit chunks or particles remain visible
-  if (blender.isBlending || blender.choppedBits.length > 0) {
-    for (let i = 0; i < blender.choppedBits.length; i++) {
-      const bit = blender.choppedBits[i];
-      ctx.save();
-      ctx.translate(bit.x, bit.y);
-      ctx.rotate(bit.angle);
-      ctx.fillStyle = bit.color;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, bit.w, bit.h, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
+  // no visible fruit evidence remains inside the blender; only the blended color shows
 
-  // original fruit markers disappear as soon as blending starts; only chopped particles remain
+  // original fruit markers disappear as soon as blending starts; only the smoothie color remains
   if (!blender.isBlending && blender.choppedBits.length === 0) {
     for (let i = 0; i < blender.fruits.length; i++) {
       const fruitName = blender.fruits[i];
